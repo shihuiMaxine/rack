@@ -1,0 +1,2280 @@
+Id,AcceptedAnswerId,Id,Title,Body
+"337","342","342","XML Processing in Python","<p>Personally, I've played with several of the built-in options on an XML-heavy project and have settled on <a href=""http://docs.python.org/lib/module-xml.dom.pulldom.html"" rel=""noreferrer"">pulldom</a> as the best choice for less complex documents.</p>
+
+<p>Especially for small simple stuff, I like the event-driven theory of parsing rather than setting up a whole slew of callbacks for a relatively simple structure.  <a href=""http://www.prescod.net/python/pulldom.html"" rel=""noreferrer"">Here is a good quick discussion of how to use the API</a>.</p>
+
+<p>What I like: you can handle the parsing in a <code>for</code> loop rather than using callbacks.  You also delay full parsing (the ""pull"" part) and only get additional detail when you call <code>expandNode()</code>.  This satisfies my general requirement for ""responsible"" efficiency without sacrificing ease of use and simplicity.</p>
+"
+"502","7090","7090","Get a preview JPEG of a PDF on Windows?","<p>ImageMagick delegates the PDF->bitmap conversion to GhostScript anyway, so here's a command you can use (it's based on the actual command listed by the <code>ps:alpha</code> delegate in ImageMagick, just adjusted to use JPEG as output):</p>
+
+<pre><code>gs -q -dQUIET -dPARANOIDSAFER -dBATCH -dNOPAUSE -dNOPROMPT \
+-dMaxBitmap=500000000 -dLastPage=1 -dAlignToPixels=0 -dGridFitTT=0 \
+-sDEVICE=jpeg -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -r72x72 \
+-sOutputFile=$OUTPUT -f$INPUT
+</code></pre>
+
+<p>where <code>$OUTPUT</code> and <code>$INPUT</code> are the output and input filenames. Adjust the <code>72x72</code> to whatever resolution you need. (Obviously, strip out the backslashes if you're writing out the whole command as one line.)</p>
+
+<p>This is good for two reasons:</p>
+
+<ol>
+<li>You don't need to have ImageMagick installed anymore. Not that I have anything against ImageMagick (I love it to bits), but I believe in simple solutions.</li>
+<li>ImageMagick does a two-step conversion. First PDF->PPM, then PPM->JPEG. This way, the conversion is one-step.</li>
+</ol>
+
+<p>Other things to consider: with the files I've tested, PNG compresses better than JPEG. If you want to use PNG, change the <code>-sDEVICE=jpeg</code> to <code>-sDEVICE=png16m</code>.</p>
+"
+"594","595","595","cx_Oracle: How do I iterate over a result set?","<p>The canonical way is to use the built-in cursor iterator.</p>
+
+<pre><code>curs.execute('select * from people')
+for row in curs:
+    print row
+</code></pre>
+
+<hr>
+
+<p>You can use <code>fetchall()</code> to get all rows at once.</p>
+
+<pre><code>for row in curs.fetchall():
+    print row
+</code></pre>
+
+<p>It can be convenient to use this to create a Python list containing the values returned:</p>
+
+<pre><code>curs.execute('select first_name from people')
+names = [row[0] for row in curs.fetchall()]
+</code></pre>
+
+<p>This can be useful for smaller result sets, but can have bad side effects if the result set is large.</p>
+
+<ul>
+<li><p>You have to wait for the entire result set to be returned to
+your client process.</p></li>
+<li><p>You may eat up a lot of memory in your client to hold
+the built-up list.</p></li>
+<li><p>It may take a while for Python to construct and deconstruct the
+list which you are going to immediately discard anyways.</p></li>
+</ul>
+
+<hr>
+
+<p>If you know there's a single row being returned in the result set you can call <code>fetchone()</code> to get the single row.</p>
+
+<pre><code>curs.execute('select max(x) from t')
+maxValue = curs.fetchone()[0]
+</code></pre>
+
+<hr>
+
+<p>Finally, you can loop over the result set fetching one row at a time.  In general, there's no particular advantage in doing this over using the iterator.</p>
+
+<pre><code>row = curs.fetchone()
+while row:
+    print row
+    row = curs.fetchone()
+</code></pre>
+"
+"683","57833","57833","Using 'in' to match an attribute of Python objects in an array","<p>Using a list comprehension would build a temporary list, which could eat all your memory if the sequence being searched is large. Even if the sequence is not large, building the list means iterating over the whole of the sequence before <code>in</code> could start its search.</p>
+
+<p>The temporary list can be avoiding by using a generator expression:</p>
+
+<pre><code>foo = 12
+foo in (obj.id for obj in bar)
+</code></pre>
+
+<p>Now, as long as <code>obj.id == 12</code> near the start of <code>bar</code>, the search will be fast, even if <code>bar</code> is infinitely long.</p>
+
+<p>As @Matt suggested, it's a good idea to use <code>hasattr</code> if any of the objects in <code>bar</code> can be missing an <code>id</code> attribute:</p>
+
+<pre><code>foo = 12
+foo in (obj.id for obj in bar if hasattr(obj, 'id'))
+</code></pre>
+"
+"742","33957","33957","Class views in Django","<p>I've created and used my own generic view classes, defining <strong><code>__call__</code></strong> so an instance of the class is callable.  I really like it; while Django's generic views allow some customization through keyword arguments, OO generic views (if their behavior is split into a number of separate methods) can have much more fine-grained customization via subclassing, which lets me repeat myself a lot less.  (I get tired of rewriting the same create/update view logic anytime I need to tweak something Django's generic views don't quite allow).</p>
+
+<p>I've posted some code at <a href=""http://www.djangosnippets.org/snippets/1009/"" rel=""noreferrer"">djangosnippets.org</a>.</p>
+
+<p>The only real downside I see is the proliferation of internal method calls, which may impact performance somewhat. I don't think this is much of a concern; it's rare that Python code execution would be your performance bottleneck in a web app.</p>
+
+<p><strong>UPDATE</strong>: Django's own <a href=""http://docs.djangoproject.com/en/dev/topics/class-based-views/"" rel=""noreferrer"">generic views</a> are now class-based.</p>
+
+<p><strong>UPDATE</strong>: FWIW, I've changed my opinion on class-based views since this answer was written. After having used them extensively on a couple of projects, I feel they tend to lead to code that is satisfyingly DRY to write, but very hard to read and maintain later, because functionality is spread across so many different places, and subclasses are so dependent on every implementation detail of the superclasses and mixins. I now feel that <a href=""https://docs.djangoproject.com/en/dev/ref/template-response/"" rel=""noreferrer"">TemplateResponse</a> and view decorators is a better answer for decomposing view code.</p>
+"
+"773","7286","7286","How do I use itertools.groupby()?","<p><strong>IMPORTANT NOTE:</strong> You have to <strong>sort your data</strong> first.</p>
+<hr />
+<p>The part I didn't get is that in the example construction</p>
+<pre><code>groups = []
+uniquekeys = []
+for k, g in groupby(data, keyfunc):
+   groups.append(list(g))    # Store group iterator as a list
+   uniquekeys.append(k)
+</code></pre>
+<p><code>k</code> is the current grouping key, and <code>g</code> is an iterator that you can use to iterate over the group defined by that grouping key. In other words, the <code>groupby</code> iterator itself returns iterators.</p>
+<p>Here's an example of that, using clearer variable names:</p>
+<pre><code>from itertools import groupby
+
+things = [(&quot;animal&quot;, &quot;bear&quot;), (&quot;animal&quot;, &quot;duck&quot;), (&quot;plant&quot;, &quot;cactus&quot;), (&quot;vehicle&quot;, &quot;speed boat&quot;), (&quot;vehicle&quot;, &quot;school bus&quot;)]
+
+for key, group in groupby(things, lambda x: x[0]):
+    for thing in group:
+        print(&quot;A %s is a %s.&quot; % (thing[1], key))
+    print(&quot;&quot;)
+    
+</code></pre>
+<p>This will give you the output:</p>
+<blockquote>
+<p>A bear is a animal.<br />
+A duck is a animal.</p>
+<p>A cactus is a plant.</p>
+<p>A speed boat is a vehicle.<br />
+A school bus is a vehicle.</p>
+</blockquote>
+<p>In this example, <code>things</code> is a list of tuples where the first item in each tuple is the group the second item belongs to.</p>
+<p>The <code>groupby()</code> function takes two arguments: (1) the data to group and (2) the function to group it with.</p>
+<p>Here, <code>lambda x: x[0]</code> tells <code>groupby()</code> to use the first item in each tuple as the grouping key.</p>
+<p>In the above <code>for</code> statement, <code>groupby</code> returns three (key, group iterator) pairs - once for each unique key. You can use the returned iterator to iterate over each individual item in that group.</p>
+<p>Here's a slightly different example with the same data, using a list comprehension:</p>
+<pre><code>for key, group in groupby(things, lambda x: x[0]):
+    listOfThings = &quot; and &quot;.join([thing[1] for thing in group])
+    print(key + &quot;s:  &quot; + listOfThings + &quot;.&quot;)
+</code></pre>
+<p>This will give you the output:</p>
+<blockquote>
+<p>animals: bear and duck.<br />
+plants: cactus.<br />
+vehicles: speed boat and school bus.</p>
+</blockquote>
+"
+"972","2982","2982","Adding a method to an existing object instance in Python","<p>In Python, there is a difference between functions and bound methods.</p>
+<pre><code>&gt;&gt;&gt; def foo():
+...     print &quot;foo&quot;
+...
+&gt;&gt;&gt; class A:
+...     def bar( self ):
+...         print &quot;bar&quot;
+...
+&gt;&gt;&gt; a = A()
+&gt;&gt;&gt; foo
+&lt;function foo at 0x00A98D70&gt;
+&gt;&gt;&gt; a.bar
+&lt;bound method A.bar of &lt;__main__.A instance at 0x00A9BC88&gt;&gt;
+&gt;&gt;&gt;
+</code></pre>
+<p>Bound methods have been &quot;bound&quot; (how descriptive) to an instance, and that instance will be passed as the first argument whenever the method is called.</p>
+<p>Callables that are attributes of a class (as opposed to an instance) are still unbound, though, so you can modify the class definition whenever you want:</p>
+<pre><code>&gt;&gt;&gt; def fooFighters( self ):
+...     print &quot;fooFighters&quot;
+...
+&gt;&gt;&gt; A.fooFighters = fooFighters
+&gt;&gt;&gt; a2 = A()
+&gt;&gt;&gt; a2.fooFighters
+&lt;bound method A.fooFighters of &lt;__main__.A instance at 0x00A9BEB8&gt;&gt;
+&gt;&gt;&gt; a2.fooFighters()
+fooFighters
+</code></pre>
+<p>Previously defined instances are updated as well (as long as they haven't overridden the attribute themselves):</p>
+<pre><code>&gt;&gt;&gt; a.fooFighters()
+fooFighters
+</code></pre>
+<p>The problem comes when you want to attach a method to a single instance:</p>
+<pre><code>&gt;&gt;&gt; def barFighters( self ):
+...     print &quot;barFighters&quot;
+...
+&gt;&gt;&gt; a.barFighters = barFighters
+&gt;&gt;&gt; a.barFighters()
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: barFighters() takes exactly 1 argument (0 given)
+</code></pre>
+<p>The function is not automatically bound when it's attached directly to an instance:</p>
+<pre><code>&gt;&gt;&gt; a.barFighters
+&lt;function barFighters at 0x00A98EF0&gt;
+</code></pre>
+<p>To bind it, we can use the <a href=""https://docs.python.org/3/library/types.html#types.MethodType"" rel=""noreferrer"">MethodType function in the types module</a>:</p>
+<pre><code>&gt;&gt;&gt; import types
+&gt;&gt;&gt; a.barFighters = types.MethodType( barFighters, a )
+&gt;&gt;&gt; a.barFighters
+&lt;bound method ?.barFighters of &lt;__main__.A instance at 0x00A9BC88&gt;&gt;
+&gt;&gt;&gt; a.barFighters()
+barFighters
+</code></pre>
+<p>This time other instances of the class have not been affected:</p>
+<pre><code>&gt;&gt;&gt; a2.barFighters()
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+AttributeError: A instance has no attribute 'barFighters'
+</code></pre>
+<p>More information can be found by reading about <a href=""https://docs.python.org/3/howto/descriptor.html"" rel=""noreferrer"">descriptors</a> and <a href=""https://web.archive.org/web/20090124004817/http://www.onlamp.com/pub/a/python/2003/04/17/metaclasses.html"" rel=""noreferrer"">metaclass</a> <a href=""http://www.gnosis.cx/publish/programming/metaclass_2.html"" rel=""noreferrer"">programming</a>.</p>
+"
+"1171","28705","28705","What is the most efficient graph data structure in Python?","<p>I would strongly advocate you look at <a href=""http://networkx.github.com/"" rel=""noreferrer"">NetworkX</a>. It's a battle-tested war horse and the first tool most 'research' types reach for when they need to do analysis of network based data. I have manipulated graphs with 100s of thousands of edges without problem on a notebook. Its feature rich and very easy to use. You will find yourself focusing more on the problem at hand rather than the details in the underlying implementation.</p>
+
+<p><strong>Example of <a href=""http://en.wikipedia.org/wiki/Erd%C5%91s%E2%80%93R%C3%A9nyi_model"" rel=""noreferrer"">Erdős-Rényi</a> random graph generation and analysis</strong></p>
+
+<pre><code>
+""""""
+Create an G{n,m} random graph with n nodes and m edges
+and report some properties.
+
+This graph is sometimes called the Erd##[m~Qs-Rényi graph
+but is different from G{n,p} or binomial_graph which is also
+sometimes called the Erd##[m~Qs-Rényi graph.
+""""""
+__author__ = """"""Aric Hagberg (hagberg@lanl.gov)""""""
+__credits__ = """"""""""""
+#    Copyright (C) 2004-2006 by 
+#    Aric Hagberg 
+#    Dan Schult 
+#    Pieter Swart 
+#    Distributed under the terms of the GNU Lesser General Public License
+#    http://www.gnu.org/copyleft/lesser.html
+
+from networkx import *
+import sys
+
+n=10 # 10 nodes
+m=20 # 20 edges
+
+G=gnm_random_graph(n,m)
+
+# some properties
+print ""node degree clustering""
+for v in nodes(G):
+    print v,degree(G,v),clustering(G,v)
+
+# print the adjacency list to terminal 
+write_adjlist(G,sys.stdout)
+</code></pre>
+
+<p>Visualizations are also straightforward:</p>
+
+<p><img src=""https://i.stack.imgur.com/5biM9.jpg"" alt=""enter image description here""></p>
+
+<p>More visualization: <a href=""http://jonschull.blogspot.com/2008/08/graph-visualization.html"" rel=""noreferrer"">http://jonschull.blogspot.com/2008/08/graph-visualization.html</a></p>
+"
+"1476","13107","13107","How do you express binary literals in Python?","<p>For reference&mdash;<em>future</em> Python possibilities:<br>
+Starting with Python 2.6 you can express binary literals using the prefix <strong>0b</strong> or <strong>0B</strong>:</p>
+
+<pre><code>&gt;&gt;&gt; 0b101111
+47
+</code></pre>
+
+<p>You can also use the new <strong>bin</strong> function to get the binary representation of a number:</p>
+
+<pre><code>&gt;&gt;&gt; bin(173)
+'0b10101101'
+</code></pre>
+
+<p>Development version of the documentation: <a href=""http://docs.python.org/dev/whatsnew/2.6.html#pep-3127-integer-literal-support-and-syntax"" rel=""noreferrer"">What's New in Python 2.6</a></p>
+"
+"1829","1852","1852","How do I make a menu that does not require the user to press [enter] to make a selection?","<p><strong>On Windows:</strong></p>
+
+<pre><code>import msvcrt
+answer=msvcrt.getch()
+</code></pre>
+"
+"1854","1857","1857","How to identify which OS Python is running on?","<pre><code>&gt;&gt;&gt; import os
+&gt;&gt;&gt; os.name
+'posix'
+&gt;&gt;&gt; import platform
+&gt;&gt;&gt; platform.system()
+'Linux'
+&gt;&gt;&gt; platform.release()
+'2.6.22-15-generic'
+</code></pre>
+
+<p>The output of <a href=""https://docs.python.org/library/platform.html#platform.system"" rel=""noreferrer""><code>platform.system()</code></a> is as follows:</p>
+
+<ul>
+<li>Linux: <code>Linux</code></li>
+<li>Mac: <code>Darwin</code></li>
+<li>Windows: <code>Windows</code></li>
+</ul>
+
+<p>See: <a href=""https://docs.python.org/library/platform.html"" rel=""noreferrer""><code>platform</code> — Access to underlying platform’s identifying data</a></p>
+"
+"2311","2316","2316","File size differences after copying a file to a server vía FTP","<p>Do you need to open the locfile in binary using <code>rb</code>?</p>
+
+<pre><code>f = open (locfile, ""rb"")
+</code></pre>
+"
+"2933","2937","2937","Create a directly-executable cross-platform GUI app using Python","<p>First you will need some GUI library with Python bindings and then (if you want) some program that will convert your python scripts into standalone executables.</p>
+
+<p><strong>Cross-platform GUI libraries with Python bindings (Windows, Linux, Mac)</strong></p>
+
+<p>Of course, there are many, but the most popular that I've seen in wild are:</p>
+
+<ul>
+<li><a href=""http://wiki.python.org/moin/TkInter"" rel=""noreferrer"">Tkinter</a>  - based on <a href=""http://www.tcl.tk/"" rel=""noreferrer"">Tk GUI toolkit</a> (de-facto standard GUI library for python, free for commercial projects)</li>
+<li><a href=""http://www.wxpython.org/"" rel=""noreferrer"">WxPython</a> - based on <a href=""http://www.wxwidgets.org/"" rel=""noreferrer"">WxWidgets</a> (popular, free for commercial projects)</li>
+<li><a href=""https://www.qt.io"" rel=""noreferrer"">Qt</a> using the <a href=""https://riverbankcomputing.com/software/pyqt/intro"" rel=""noreferrer"">PyQt bindings</a> or <a href=""https://www.qt.io/qt-for-python"" rel=""noreferrer"">Qt for Python</a>. The former is not free for commercial projects. The latter is less mature, but can be used for free.</li>
+</ul>
+
+<p>Complete list is at <a href=""http://wiki.python.org/moin/GuiProgramming"" rel=""noreferrer"">http://wiki.python.org/moin/GuiProgramming</a></p>
+
+<p><strong>Single executable (all platforms)</strong></p>
+
+<ul>
+<li><a href=""https://www.pyinstaller.org/"" rel=""noreferrer"">PyInstaller</a> - the most active(Could also be used with <code>PyQt</code>)</li>
+<li><a href=""https://build-system.fman.io"" rel=""noreferrer"">fbs</a> - if you chose Qt above</li>
+</ul>
+
+<p><strong>Single executable (Windows)</strong></p>
+
+<ul>
+<li><a href=""http://www.py2exe.org/"" rel=""noreferrer"">py2exe</a> - used to be the most popular</li>
+</ul>
+
+<p><strong>Single executable (Linux)</strong></p>
+
+<ul>
+<li><a href=""http://wiki.python.org/moin/Freeze"" rel=""noreferrer"">Freeze</a> - works the same way like py2exe but targets Linux platform</li>
+</ul>
+
+<p><strong>Single executable (Mac)</strong></p>
+
+<ul>
+<li><a href=""https://pythonhosted.org/py2app/"" rel=""noreferrer"">py2app</a> - again, works like py2exe but targets Mac OS</li>
+</ul>
+"
+"3061","3071","3071","Calling a function of a module by using its name (a string)","<p>Given a module <code>foo</code> with method <code>bar</code>:</p>
+<pre><code>import foo
+bar = getattr(foo, 'bar')
+result = bar()
+</code></pre>
+<p><a href=""https://docs.python.org/library/functions.html#getattr"" rel=""noreferrer""><code>getattr</code></a> can similarly be used on class instance bound methods, module-level methods, class methods... the list goes on.</p>
+"
+"5415","73281","73281","Convert Bytes to Floating Point Numbers?","<pre><code>&gt;&gt;&gt; import struct
+&gt;&gt;&gt; struct.pack('f', 3.141592654)
+b'\xdb\x0fI@'
+&gt;&gt;&gt; struct.unpack('f', b'\xdb\x0fI@')
+(3.1415927410125732,)
+&gt;&gt;&gt; struct.pack('4f', 1.0, 2.0, 3.0, 4.0)
+'\x00\x00\x80?\x00\x00\x00@\x00\x00@@\x00\x00\x80@'
+</code></pre>
+"
+"5419","5430","5430","Python, Unicode, and the Windows console","<p><strong>Note:</strong> This answer is sort of outdated (from 2008). Please use the solution below with care!!</p>
+
+<hr>
+
+<p>Here is a page that details the problem and a solution (search the page for the text <em>Wrapping sys.stdout into an instance</em>):</p>
+
+<p><a href=""http://wiki.python.org/moin/PrintFails"" rel=""noreferrer"">PrintFails - Python Wiki</a></p>
+
+<p>Here's a code excerpt from that page:</p>
+
+<pre><code>$ python -c 'import sys, codecs, locale; print sys.stdout.encoding; \
+    sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout); \
+    line = u""\u0411\n""; print type(line), len(line); \
+    sys.stdout.write(line); print line'
+  UTF-8
+  &lt;type 'unicode'&gt; 2
+  Б
+  Б
+
+  $ python -c 'import sys, codecs, locale; print sys.stdout.encoding; \
+    sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout); \
+    line = u""\u0411\n""; print type(line), len(line); \
+    sys.stdout.write(line); print line' | cat
+  None
+  &lt;type 'unicode'&gt; 2
+  Б
+  Б
+</code></pre>
+
+<p>There's some more information on that page, well worth a read.</p>
+"
+"5909","5985","5985","Get size of a file before downloading in Python","<p>I have reproduced what you are seeing:</p>
+
+<pre><code>import urllib, os
+link = ""http://python.org""
+print ""opening url:"", link
+site = urllib.urlopen(link)
+meta = site.info()
+print ""Content-Length:"", meta.getheaders(""Content-Length"")[0]
+
+f = open(""out.txt"", ""r"")
+print ""File on disk:"",len(f.read())
+f.close()
+
+
+f = open(""out.txt"", ""w"")
+f.write(site.read())
+site.close()
+f.close()
+
+f = open(""out.txt"", ""r"")
+print ""File on disk after download:"",len(f.read())
+f.close()
+
+print ""os.stat().st_size returns:"", os.stat(""out.txt"").st_size
+</code></pre>
+
+<p>Outputs this:</p>
+
+<pre><code>opening url: http://python.org
+Content-Length: 16535
+File on disk: 16535
+File on disk after download: 16535
+os.stat().st_size returns: 16861
+</code></pre>
+
+<p>What am I doing wrong here? Is os.stat().st_size not returning the correct size?</p>
+
+<hr>
+
+<p>Edit:
+OK, I figured out what the problem was:</p>
+
+<pre><code>import urllib, os
+link = ""http://python.org""
+print ""opening url:"", link
+site = urllib.urlopen(link)
+meta = site.info()
+print ""Content-Length:"", meta.getheaders(""Content-Length"")[0]
+
+f = open(""out.txt"", ""rb"")
+print ""File on disk:"",len(f.read())
+f.close()
+
+
+f = open(""out.txt"", ""wb"")
+f.write(site.read())
+site.close()
+f.close()
+
+f = open(""out.txt"", ""rb"")
+print ""File on disk after download:"",len(f.read())
+f.close()
+
+print ""os.stat().st_size returns:"", os.stat(""out.txt"").st_size
+</code></pre>
+
+<p>this outputs:</p>
+
+<pre><code>$ python test.py
+opening url: http://python.org
+Content-Length: 16535
+File on disk: 16535
+File on disk after download: 16535
+os.stat().st_size returns: 16535
+</code></pre>
+
+<p>Make sure you are opening both files for binary read/write.</p>
+
+<pre><code>// open for binary write
+open(filename, ""wb"")
+// open for binary read
+open(filename, ""rb"")
+</code></pre>
+"
+"5966","10778","10778","Best way to abstract season/show/episode data","<p>OK, what you need is <code>classobj</code> from new module. That would allow you to construct exception classes dynamically (<code>classobj</code> takes a string as an argument for the class name). </p>
+
+<pre><code>import new
+myexc=new.classobj(""ExcName"",(Exception,),{})
+i=myexc(""This is the exc msg!"")
+raise i
+</code></pre>
+
+<p>this gives you:</p>
+
+<pre><code>Traceback (most recent call last):
+File ""&lt;stdin&gt;"", line 1, in &lt;module&gt;
+__main__.ExcName: This is the exc msg!
+</code></pre>
+
+<p>remember that you can always get the class name through:</p>
+
+<pre><code>self.__class__.__name__
+</code></pre>
+
+<p>So, after some string mangling and concatenation, you should be able to obtain appropriate exception class name and construct a class object using that name and then raise that exception.</p>
+
+<p>P.S. - you can also raise strings, but this is deprecated.</p>
+
+<pre><code>raise(self.__class__.__name__+""Exception"")
+</code></pre>
+"
+"8154","46442","46442","Pylons error - 'MySQL server has gone away'","<p>I think I fixed it. It's turns out I had a simple config error. My ini file read:</p>
+
+<pre><code>sqlalchemy.default.url = [connection string here]
+sqlalchemy.pool_recycle = 1800
+</code></pre>
+
+<p>The problem is that my <code>environment.py</code> file declared that the engine would only map keys with the prefix: <code>sqlalchemy.default</code> so <code>pool_recycle</code> was ignored.</p>
+
+<p>The solution is to simply change the second line in the ini to:</p>
+
+<pre><code>sqlalchemy.default.pool_recycle = 1800
+</code></pre>
+"
+"10123","10129","10129","How do I treat an integer as an array of bytes in Python?","<p>This will do what you want:</p>
+
+<pre><code>signum = status &amp; 0xff
+exitstatus = (status &amp; 0xff00) &gt;&gt; 8
+</code></pre>
+"
+"12592","12609","12609","Can you check that an exception is thrown with doctest in Python?","<p>Yes. You can do it. The <a href=""https://docs.python.org/3/library/doctest.html"" rel=""noreferrer"">doctest module documentation</a> and Wikipedia has an <a href=""http://en.wikipedia.org/wiki/Doctest#Example_2:_doctests_embedded_in_a_README.txt_file"" rel=""noreferrer"">example</a> of it.</p>
+
+<pre><code>   &gt;&gt;&gt; x
+   Traceback (most recent call last):
+     ...
+   NameError: name 'x' is not defined
+</code></pre>
+"
+"13396","13435","13435","Replacement for for... if array iteration","<p>The increment in the original <code>foreach</code> loop will not affect the contents of the array, the only way to do this remains a <code>for</code> loop:</p>
+
+<pre><code>for(int i = 0; i &lt; intArray.Length; ++i)
+{
+    if(intArray[i] &gt; 3) ++intArray[i];
+}
+</code></pre>
+
+<p>Linq is not intended to modify existing collections or sequences. It creates new sequences based on existing ones. It is possible to achieve the above code using Linq, though it is slightly against its purposes:</p>
+
+<pre><code>var newArray1 = from i in intArray select ((i &gt; 3) ? (i + 1) : (i));
+var newArray2 = intArray.Select(i =&gt; (i &gt; 3) ? (i + 1) : (i));
+</code></pre>
+
+<p>Using <code>where</code> (or equivalent), as shown in some of the other answers, will exclude any values less than or equal to 3 from the resulting sequence.</p>
+
+<pre><code>var intArray = new int[] { 10, 1, 20, 2 };
+var newArray = from i in intArray where i &gt; 3 select i + 1;
+// newArray == { 11, 21 }
+</code></pre>
+
+<p>There is a <code>ForEach</code> method on arrays that will allow you to use a lambda function instead of a <code>foreach</code> block, though for anything more than a method call I would stick with <code>foreach</code>.</p>
+
+<pre><code>intArray.ForEach(i =&gt; DoSomething(i));
+</code></pre>
+"
+"13791","13943","13943","Python Regular Expressions to implement string unescaping","<p>Isn't that what Anders' second example does?</p>
+
+<p>In 2.5 there's also a <code>string-escape</code> encoding you can apply:</p>
+
+<pre><code>&gt;&gt;&gt; mystring = r""This is \n a test \r""
+&gt;&gt;&gt; mystring.decode('string-escape')
+'This is \n a test \r'
+&gt;&gt;&gt; print mystring.decode('string-escape')
+This is 
+ a test 
+&gt;&gt;&gt; 
+</code></pre>
+"
+"13857","141426","141426","Can you explain closures (as they relate to Python)?","<p><a href=""http://mrevelle.blogspot.com/2006/10/closure-on-closures.html"" rel=""noreferrer"">Closure on closures</a></p>
+
+<blockquote>
+  <p>Objects are data with methods
+  attached, closures are functions with
+  data attached.</p>
+</blockquote>
+
+<pre><code>def make_counter():
+    i = 0
+    def counter(): # counter() is a closure
+        nonlocal i
+        i += 1
+        return i
+    return counter
+
+c1 = make_counter()
+c2 = make_counter()
+
+print (c1(), c1(), c2(), c2())
+# -&gt; 1 2 1 2
+</code></pre>
+"
+"13941","13949","13949","Python Sound (""Bell"")","<p>Have you tried :</p>
+
+<pre><code>import sys
+sys.stdout.write('\a')
+sys.stdout.flush()
+</code></pre>
+
+<p>That works for me here on Mac OS 10.5</p>
+
+<p>Actually, I think your original attempt works also with a little modification:</p>
+
+<pre><code>print('\a')
+</code></pre>
+
+<p>(You just need the single quotes around the character sequence).</p>
+"
+"14281","14320","14320","Is there a python module for regex matching in zip files","<p>There's nothing that will automatically do what you want.</p>
+
+<p>However, there is a python zipfile module that will make this easy to do.  Here's how to iterate over the lines in the file.</p>
+
+<pre><code>#!/usr/bin/python
+
+import zipfile
+f = zipfile.ZipFile('myfile.zip')
+
+for subfile in f.namelist():
+    print subfile
+    data = f.read(subfile)
+    for line in data.split('\n'):
+        print line
+</code></pre>
+"
+"14389","14391","14391","Regex and unicode","<p>Use a subrange of <code>[\u0000-\uFFFF]</code> for what you want.</p>
+
+<p>You can also use the <code>re.UNICODE</code> compile flag. <a href=""http://docs.python.org/lib/re-syntax.html"" rel=""nofollow noreferrer"">The docs</a> say that if <code>UNICODE</code> is set, <code>\w</code> will match the characters <code>[0-9_]</code> plus whatever is classified as alphanumeric in the Unicode character properties database. </p>
+
+<p>See also <a href=""http://coding.derkeiler.com/Archive/Python/comp.lang.python/2004-05/2560.html"" rel=""nofollow noreferrer"">http://coding.derkeiler.com/Archive/Python/comp.lang.python/2004-05/2560.html</a>.</p>
+"
+"15798","15931","15931","How do I validate xml against a DTD file in Python","<p>Another good option is <a href=""http://lxml.de/validation.html"" rel=""noreferrer"">lxml's validation</a> which I find quite pleasant to use.</p>
+
+<p>A simple example taken from the lxml site:</p>
+
+<pre><code>from StringIO import StringIO
+
+from lxml import etree
+
+dtd = etree.DTD(StringIO(""""""&lt;!ELEMENT foo EMPTY&gt;""""""))
+root = etree.XML(""&lt;foo/&gt;"")
+print(dtd.validate(root))
+# True
+
+root = etree.XML(""&lt;foo&gt;bar&lt;/foo&gt;"")
+print(dtd.validate(root))
+# False
+print(dtd.error_log.filter_from_errors())
+# &lt;string&gt;:1:0:ERROR:VALID:DTD_NOT_EMPTY: Element foo was declared EMPTY this one has content
+</code></pre>
+"
+"17893","17933","17933","What's the best way to distribute python command-line tools?","<p>Try the <code>entry_points.console_scripts</code> parameter in the setup() call. As described in the <a href=""http://peak.telecommunity.com/DevCenter/setuptools#automatic-script-creation"" rel=""noreferrer"">setuptools docs</a>, this should do what I think you want.</p>
+
+<p>To reproduce here:</p>
+
+<pre><code>from setuptools import setup
+
+setup(
+    # other arguments here...
+    entry_points = {
+        'console_scripts': [
+            'foo = package.module:func',
+            'bar = othermodule:somefunc',
+        ],
+    }
+)
+</code></pre>
+"
+"18418","18435","18435","Elegant way to remove items from sequence in Python?","<p>Two easy ways to accomplish just the filtering are:</p>
+
+<ol>
+<li><p>Using <code>filter</code>:</p>
+
+<p><code>names = filter(lambda name: name[-5:] != ""Smith"", names)</code></p></li>
+<li><p>Using list comprehensions:</p>
+
+<p><code>names = [name for name in names if name[-5:] != ""Smith""]</code></p></li>
+</ol>
+
+<p>Note that both cases keep the values for which the predicate function evaluates to <code>True</code>, so you have to reverse the logic (i.e. you say ""keep the people who do not have the last name Smith"" instead of ""remove the people who have the last name Smith"").</p>
+
+<p><strong>Edit</strong> Funny... two people individually posted both of the answers I suggested as I was posting mine.</p>
+"
+"19030","21302","21302","How to check set of files conform to a naming scheme","<blockquote>
+  <p>I want to add a rule that checks for
+  the presence of a folder.jpg file in
+  each directory, but to add this would
+  make the code substantially more messy
+  in it's current state..</p>
+</blockquote>
+
+<p>This doesn't look bad.  In fact your current code does it very nicely, and Sven mentioned a good way to do it as well:</p>
+
+<ol>
+<li>Get a list of all the files</li>
+<li>Check for ""required"" files</li>
+</ol>
+
+<p>You would just have have add to your dictionary a list of required files:</p>
+
+<pre><code>checker = {
+  ...
+  'required': ['file', 'list', 'for_required']
+}
+</code></pre>
+
+<p>As far as there being a better/extensible way to do this?  I am not exactly sure.  I could only really think of a way to possibly drop the ""multiple"" regular expressions and build off of Sven's idea for using a delimiter.  So my strategy would be defining a dictionary as follows (and I'm sorry I don't know Python syntax and I'm a tad to lazy to look it up but it should make sense.  The /regex/ is shorthand for a regex):</p>
+
+<pre><code>check_dict = {
+  'delim'    : /\-/,
+  'parts'    : [ 'Show Name', 'Episode Name', 'Episode Number' ],
+  'patterns' : [/valid name/, /valid episode name/, /valid number/ ],
+  'required' : ['list', 'of', 'files'],
+  'ignored'  : ['.*', 'hidden.txt'],
+  'start_dir': '/path/to/dir/to/test/'
+}
+</code></pre>
+
+<ol>
+<li>Split the filename based on the delimiter.</li>
+<li>Check each of the parts.</li>
+</ol>
+
+<p>Because its an ordered list you can determine what parts are missing and if a section doesn't match any pattern it is malformed.  Here the <code>parts</code> and <code>patterns</code> have a 1 to 1 ratio.  Two arrays instead of a dictionary enforces the order.</p>
+
+<p>Ignored and required files can be listed.  The <code>.</code> and <code>..</code> files should probably be ignored automatically.  The user should be allowed to input ""globs"" which can be shell expanded.  I'm thinking here of <code>svn:ignore</code> properties, but globbing is natural for listing files.</p>
+
+<p>Here <code>start_dir</code> would be default to the current directory but if you wanted a single file to run automated testing of a bunch of directories this would be useful.</p>
+
+<p>The real loose end here is the path template and along the same lines what path is required for ""valid files"".  I really couldn't come up with a solid idea without writing one large regular expression and taking groups from it... to build a template.  It felt a lot like writing a TextMate language grammar.  But that starts to stray on the ease of use.  The real problem was that the path template was not composed of <code>parts</code>, which makes sense but adds complexity.</p>
+
+<p>Is this strategy in tune with what you were thinking of?</p>
+"
+"19151","24377","24377","How to build a basic iterator?","<p>Iterator objects in python conform to the iterator protocol, which basically means they provide two methods: <code>__iter__()</code>  and  <code>__next__()</code>.  </p>
+
+<ul>
+<li><p>The <code>__iter__</code> returns the iterator object and is implicitly called
+at the start of loops.</p></li>
+<li><p>The <code>__next__()</code> method returns the next value and is implicitly called at each loop increment.  This method raises a StopIteration exception when there are no more value to return, which is implicitly captured by looping constructs to stop iterating.</p></li>
+</ul>
+
+<p>Here's a simple example of a counter:</p>
+
+<pre><code>class Counter:
+    def __init__(self, low, high):
+        self.current = low - 1
+        self.high = high
+
+    def __iter__(self):
+        return self
+
+    def __next__(self): # Python 2: def next(self)
+        self.current += 1
+        if self.current &lt; self.high:
+            return self.current
+        raise StopIteration
+
+
+for c in Counter(3, 9):
+    print(c)
+</code></pre>
+
+<p>This will print:</p>
+
+<pre><code>3
+4
+5
+6
+7
+8
+</code></pre>
+
+<p>This is easier to write using a generator, as covered in a previous answer:</p>
+
+<pre><code>def counter(low, high):
+    current = low
+    while current &lt; high:
+        yield current
+        current += 1
+
+for c in counter(3, 9):
+    print(c)
+</code></pre>
+
+<p>The printed output will be the same.  Under the hood, the generator object supports the iterator protocol and does something roughly similar to the class Counter.</p>
+
+<p>David Mertz's article, <a href=""https://www.ibm.com/developerworks/library/l-pycon/"" rel=""noreferrer"">Iterators and Simple Generators</a>, is a pretty good introduction. </p>
+"
+"19339","19343","19343","Transpose/Unzip Function (inverse of zip)?","<p>In 2.x, <a href=""http://docs.python.org/library/functions.html#zip"" rel=""noreferrer""><code>zip</code></a> is its own inverse! Provided you <a href=""https://stackoverflow.com/questions/36901"">use the special * operator</a>.</p>
+<pre><code>&gt;&gt;&gt; zip(*[('a', 1), ('b', 2), ('c', 3), ('d', 4)])
+[('a', 'b', 'c', 'd'), (1, 2, 3, 4)]
+</code></pre>
+<p>This is equivalent to calling <code>zip</code> with each element of the list as a separate argument:</p>
+<pre><code>zip(('a', 1), ('b', 2), ('c', 3), ('d', 4))
+</code></pre>
+<p>except the arguments are passed to <code>zip</code> directly (after being converted to a tuple), so there's no need to worry about the number of arguments getting too big.</p>
+<p>In 3.x, <code>zip</code> <a href=""https://stackoverflow.com/questions/27431390"">returns a lazy iterator</a>, but this is trivially converted:</p>
+<pre><code>&gt;&gt;&gt; list(zip(*[('a', 1), ('b', 2), ('c', 3), ('d', 4)]))
+[('a', 'b', 'c', 'd'), (1, 2, 3, 4)]
+</code></pre>
+"
+"20063","26910","26910","What's the best way to parse command line arguments?","<p><strong>This answer suggests <code>optparse</code> which is appropriate for older Python versions. For Python 2.7 and above, <code>argparse</code> replaces <code>optparse</code>. See <a href=""https://stackoverflow.com/questions/3217673/why-use-argparse-rather-than-optparse"">this answer</a> for more information.</strong></p>
+
+<p>As other people pointed out, you are better off going with optparse over getopt.  getopt is pretty much a one-to-one mapping of the standard getopt(3) C library functions, and not very easy to use.</p>
+
+<p>optparse, while being a bit more verbose, is much better structured and simpler to extend later on.</p>
+
+<p>Here's a typical line to add an option to your parser:</p>
+
+<pre><code>parser.add_option('-q', '--query',
+            action=""store"", dest=""query"",
+            help=""query string"", default=""spam"")
+</code></pre>
+
+<p>It pretty much speaks for itself; at processing time, it will accept -q or --query as options, store the argument in an attribute called query and has a default value if you don't specify it.  It is also self-documenting in that you declare the help argument (which will be used when run with -h/--help) right there with the option.</p>
+
+<p>Usually you parse your arguments with:</p>
+
+<pre><code>options, args = parser.parse_args()
+</code></pre>
+
+<p>This will, by default, parse the standard arguments passed to the script (sys.argv[1:])</p>
+
+<p>options.query will then be set to the value you passed to the script.</p>
+
+<p>You create a parser simply by doing</p>
+
+<pre><code>parser = optparse.OptionParser()
+</code></pre>
+
+<p>These are all the basics you need.  Here's a complete Python script that shows this:</p>
+
+<pre><code>import optparse
+
+parser = optparse.OptionParser()
+
+parser.add_option('-q', '--query',
+    action=""store"", dest=""query"",
+    help=""query string"", default=""spam"")
+
+options, args = parser.parse_args()
+
+print 'Query string:', options.query
+</code></pre>
+
+<p>5 lines of python that show you the basics.</p>
+
+<p>Save it in sample.py, and run it once with</p>
+
+<pre><code>python sample.py
+</code></pre>
+
+<p>and once with</p>
+
+<pre><code>python sample.py --query myquery
+</code></pre>
+
+<p>Beyond that, you will find that optparse is very easy to extend.
+In one of my projects, I created a Command class which allows you to nest subcommands in a command tree easily.  It uses optparse heavily to chain commands together.  It's not something I can easily explain in a few lines, but feel free to <a href=""https://thomas.apestaart.org/moap/trac/browser/trunk/moap/extern/command/command.py"" rel=""noreferrer"">browse around in my repository</a> for the main class, as well as <a href=""https://thomas.apestaart.org/moap/trac/browser/trunk/moap/command/doap.py"" rel=""noreferrer"">a class that uses it and the option parser</a></p>
+"
+"20794","26957","26957","Find broken symlinks with Python","<p>A common Python saying is that it's easier to ask forgiveness than permission.  While I'm not a fan of this statement in real life, it does apply in a lot of cases.  Usually you want to avoid code that chains two system calls on the same file, because you never know what will happen to the file in between your two calls in your code.</p>
+
+<p><strong>A typical mistake is to write something like</strong>:</p>
+
+<pre><code>if os.path.exists(path):
+    os.unlink(path)
+</code></pre>
+
+<p>The second call (os.unlink) may fail if something else deleted it after your if test, raise an Exception, and stop the rest of your function from executing.  (You might think this doesn't happen in real life, but we just fished another bug like that out of our codebase last week - and it was the kind of bug that left a few programmers scratching their head and claiming 'Heisenbug' for the last few months)</p>
+
+<p>So, in your particular case, I would probably do:</p>
+
+<pre><code>try:
+    os.stat(path)
+except OSError, e:
+    if e.errno == errno.ENOENT:
+        print 'path %s does not exist or is a broken symlink' % path
+    else:
+        raise e
+</code></pre>
+
+<p>The annoyance here is that stat returns the same error code for a symlink that just isn't there and a broken symlink.</p>
+
+<p>So, I guess you have no choice than to break the atomicity, and do something like</p>
+
+<pre><code>if not os.path.exists(os.readlink(path)):
+    print 'path %s is a broken symlink' % path
+</code></pre>
+"
+"22617","22624","22624","Format numbers to strings in Python","<p>Starting with Python 3.6, formatting in Python can be done using <a href=""https://docs.python.org/3/whatsnew/3.6.html#whatsnew36-pep498"" rel=""noreferrer"">formatted string literals</a> or <em>f-strings</em>:</p>
+
+<pre><code>hours, minutes, seconds = 6, 56, 33
+f'{hours:02}:{minutes:02}:{seconds:02} {""pm"" if hours &gt; 12 else ""am""}'
+</code></pre>
+
+<p>or the <a href=""https://docs.python.org/library/stdtypes.html#str.format"" rel=""noreferrer""><code>str.format</code></a> function starting with 2.7:</p>
+
+<pre><code>""{:02}:{:02}:{:02} {}"".format(hours, minutes, seconds, ""pm"" if hours &gt; 12 else ""am"")
+</code></pre>
+
+<p>or the <a href=""https://docs.python.org/library/stdtypes.html#printf-style-string-formatting"" rel=""noreferrer"">string formatting <code>%</code> operator</a> for even older versions of Python, but see the note in the docs:</p>
+
+<pre><code>""%02d:%02d:%02d"" % (hours, minutes, seconds)
+</code></pre>
+
+<p>And for your specific case of formatting time, there’s <a href=""https://docs.python.org/library/time.html#time.strftime"" rel=""noreferrer""><code>time.strftime</code></a>:</p>
+
+<pre><code>import time
+
+t = (0, 0, 0, hours, minutes, seconds, 0, 0, 0)
+time.strftime('%I:%M:%S %p', t)
+</code></pre>
+"
+"22676","22682","22682","How to download a file over HTTP?","<p>Use <a href=""https://docs.python.org/3/library/urllib.request.html#urllib.request.urlopen"" rel=""noreferrer""><code>urllib.request.urlopen()</code></a>:</p>
+<pre><code>import urllib.request
+with urllib.request.urlopen('http://www.example.com/') as f:
+    html = f.read().decode('utf-8')
+</code></pre>
+<p>This is the most basic way to use the library, minus any error handling. You can also do more complex stuff such as changing headers.</p>
+<p>On Python 2, the method is in <a href=""http://docs.python.org/2/library/urllib2.html"" rel=""noreferrer""><code>urllib2</code></a>:</p>
+<pre><code>import urllib2
+response = urllib2.urlopen('http://www.example.com/')
+html = response.read()
+</code></pre>
+"
+"24931","24949","24949","How to capture Python interpreter's and/or CMD.EXE's output from a Python script?","<p>If you are talking about the python interpreter or CMD.exe that is the 'parent' of your script then no, it isn't possible. In every POSIX-like system (now you're running Windows, it seems, and that might have some quirk I don't know about, YMMV) each process has three streams, standard input, standard output and standard error. Bu default (when running in a console) these are directed to the console, but redirection is possible using the pipe notation:</p>
+
+<pre><code>python script_a.py | python script_b.py
+</code></pre>
+
+<p>This ties the standard output stream of script a to the standard input stream of script B. Standard error still goes to the console in this example. See the article on <a href=""http://en.wikipedia.org/wiki/Standard_streams"" rel=""nofollow noreferrer"">standard streams</a> on Wikipedia.</p>
+
+<p>If you're talking about a child process, you can launch it from python like so (stdin is also an option if you want two way communication):</p>
+
+<pre><code>import subprocess
+# Of course you can open things other than python here :)
+process = subprocess.Popen([""python"", ""main.py""], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+x = process.stderr.readline()
+y = process.stdout.readline()
+process.wait()
+</code></pre>
+
+<p>See the Python <a href=""http://docs.python.org/lib/module-subprocess.html"" rel=""nofollow noreferrer"">subprocess</a> module for information on managing the process. For communication, the process.stdin and process.stdout pipes are considered standard <a href=""http://docs.python.org/lib/bltin-file-objects.html"" rel=""nofollow noreferrer"">file objects</a>.</p>
+
+<p>For use with pipes, reading from standard input as <a href=""https://stackoverflow.com/questions/24931/how-to-capture-python-interpreters-andor-cmdexes-output-from-a-python-script#24939"">lassevk</a> suggested you'd do something like this:</p>
+
+<pre><code>import sys
+x = sys.stderr.readline()
+y = sys.stdin.readline()
+</code></pre>
+
+<p>sys.stdin and sys.stdout are standard file objects as noted above, defined in the <a href=""http://docs.python.org/lib/module-sys.html"" rel=""nofollow noreferrer"">sys</a> module. You might also want to take a look at the <a href=""http://docs.python.org/lib/module-pipes.html"" rel=""nofollow noreferrer"">pipes</a> module.</p>
+
+<p>Reading data with readline() as in my example is a pretty naïve way of getting data though. If the output is not line-oriented or indeterministic you probably want to look into <a href=""http://docs.python.org/lib/poll-objects.html"" rel=""nofollow noreferrer"">polling</a> which unfortunately does not work in windows, but I'm sure there's some alternative out there.</p>
+"
+"25116","7357938","7357938","Binary buffer in Python","<p>You are probably looking for <a href=""http://docs.python.org/release/3.1.3/library/io.html#binary-i-o"">io.BytesIO</a> class. It works exactly like StringIO except that it supports binary data:</p>
+
+<pre><code>from io import BytesIO
+bio = BytesIO(b""some initial binary data: \x00\x01"")
+</code></pre>
+
+<p>StringIO will throw TypeError:</p>
+
+<pre><code>from io import StringIO
+sio = StringIO(b""some initial binary data: \x00\x01"")
+</code></pre>
+"
+"25807","25815","25815","Python super class reflection","<p><code>C.__bases__</code> is an array of the super classes, so you could implement your hypothetical function like so:</p>
+
+<pre><code>def magicGetSuperClasses(cls):
+  return cls.__bases__
+</code></pre>
+
+<p>But I imagine it would be easier to just reference <code>cls.__bases__</code> directly in most cases.</p>
+"
+"26595","26611","26611","Is there any difference between ""foo is None"" and ""foo == None""?","<p><code>is</code> always returns <code>True</code> if it compares the same object instance</p>
+
+<p>Whereas <code>==</code> is ultimately determined by the <code>__eq__()</code> method</p>
+
+<p>i.e.</p>
+
+<pre><code>
+>>> class Foo(object):
+       def __eq__(self, other):
+           return True
+
+>>> f = Foo()
+>>> f == None
+True
+>>> f is None
+False
+</code></pre>
+"
+"28165","28247","28247","Does PHP have an equivalent to this type of Python string substitution?","<pre><code>function subst($str, $dict){
+    return preg_replace(array_map(create_function('$a', 'return ""/%\\($a\\)s/"";'), array_keys($dict)), array_values($dict), $str);
+ }
+</code></pre>
+
+<p>You call it like so:</p>
+
+<pre><code>echo subst('The %(site)s site %(adj)s because it %(adj)s', array('site'=&gt;'Stackoverflow', 'adj'=&gt;'rocks'));
+</code></pre>
+"
+"28369","32028","32028","Is ""safe_eval"" really safe?","<p>Depends on your definition of safe I suppose. A lot of the security depends on what you pass in and what you are allowed to pass in the context. For instance, if a file is passed in, I can open arbitrary files:</p>
+
+<pre><code>&gt;&gt;&gt; names['f'] = open('foo', 'w+')
+&gt;&gt;&gt; safe_eval.safe_eval(""baz = type(f)('baz', 'w+')"", names)
+&gt;&gt;&gt; names['baz']
+&lt;open file 'baz', mode 'w+' at 0x413da0&gt;
+</code></pre>
+
+<p>Furthermore, the environment is very restricted (you cannot pass in modules), thus, you can't simply pass in a module of utility functions like re or random.</p>
+
+<p>On the other hand, you don't need to write your own parser, you could just write your own evaluator for the python ast:</p>
+
+<pre><code>&gt;&gt;&gt; import compiler
+&gt;&gt;&gt; ast = compiler.parse(""print 'Hello world!'"")
+</code></pre>
+
+<p>That way, hopefully, you could implement safe imports. The other idea is to use Jython or IronPython and take advantage of Java/.Net sandboxing capabilities.</p>
+"
+"28559","28714","28714","Most Pythonic way equivalent for: while ((x = next()) != END)","<p>Short answer: there's no way to do inline variable assignment in a while loop in Python. Meaning that I <strong>cannot</strong> say:</p>
+
+<pre><code>while x=next():
+    // do something here!
+</code></pre>
+
+<p>Since that's not possible, there are a number of ""idiomatically correct"" ways of doing this:</p>
+
+<pre><code>while 1:
+    x = next()
+    if x != END:
+        // Blah
+    else:
+        break
+</code></pre>
+
+<p>Obviously, this is kind of ugly. You can also use one of the ""iterator"" approaches listed above, but, again, that may not be ideal. Finally, you can use the ""pita pocket"" approach that I actually just found while googling:</p>
+
+<pre><code>class Pita( object ):
+    __slots__ = ('pocket',)
+    marker = object()
+    def __init__(self, v=marker):
+        if v is not self.marker:
+            self.pocket = v
+    def __call__(self, v=marker):
+        if v is not self.marker:
+            self.pocket = v
+        return self.pocket
+</code></pre>
+
+<p>Now you can do:</p>
+
+<pre><code>p = Pita()
+while p( next() ) != END:
+    // do stuff with p.pocket!
+</code></pre>
+
+<p>Thanks for this question; learning about the <code>__call__</code> idiom was really cool! :)</p>
+
+<p>EDIT: I'd like to give credit where credit is due. The 'pita pocket' idiom was found <a href=""http://mail.python.org/pipermail/python-list/2003-July/216789.html"" rel=""nofollow noreferrer"">here</a></p>
+"
+"29243","29255","29255","How do I create an xml document in python","<p>Setting an attribute on an object won't give a compile-time or a run-time error, it will just do nothing useful if the object doesn't access it (i.e. ""<code>node.noSuchAttr = 'bar'</code>"" would also not give an error).</p>
+
+<p>Unless you need a specific feature of <code>minidom</code>, I would look at <code>ElementTree</code>:</p>
+
+<pre><code>import sys
+from xml.etree.cElementTree import Element, ElementTree
+
+def make_xml():
+    node = Element('foo')
+    node.text = 'bar'
+    doc = ElementTree(node)
+    return doc
+
+if __name__ == '__main__':
+    make_xml().write(sys.stdout)
+</code></pre>
+"
+"29562","29575","29575","How to use Python distutils?","<p>See the <a href=""http://docs.python.org/dist/simple-example.html"" rel=""noreferrer"">distutils simple example</a>. That's basically what it is like, except real install scripts usually contain a bit more information. I have not seen any that are fundamentally more complicated, though. In essence, you just give it a list of what needs to be installed. Sometimes you need to give it some mapping dicts since the source and installed trees might not be the same.</p>
+
+<p>Here is a real-life (anonymized) example:</p>
+
+<pre><code>#!/usr/bin/python 
+
+from distutils.core import setup 
+
+setup (name = 'Initech Package 3', 
+          description = ""Services and libraries ABC, DEF"", 
+          author = ""That Guy, Initech Ltd"", 
+          author_email = ""that.guy@initech.com"", 
+          version = '1.0.5', 
+          package_dir = {'Package3' : 'site-packages/Package3'}, 
+          packages = ['Package3', 'Package3.Queries'], 
+          data_files = [ 
+                       ('/etc/Package3', ['etc/Package3/ExternalResources.conf']) 
+          ])
+</code></pre>
+"
+"32044","32125","32125","How can I render a tree structure (recursive) using a django template?","<p>I think the canonical answer is: ""Don't"".</p>
+
+<p>What you should probably do instead is unravel the thing in your <em>view</em> code, so it's just a matter of iterating over (in|de)dents in the template. I think I'd do it by appending indents and dedents to a list while recursing through the tree and then sending that ""travelogue"" list to the template. (the template would then insert <code>&lt;li&gt;</code> and <code>&lt;/li&gt;</code> from that list, creating the recursive structure with ""understanding"" it.)</p>
+
+<p>I'm also pretty sure recursively including template files is really a <em>wrong</em> way to do it...</p>
+"
+"32404","32440","32440","How do you run a Python script as a service in Windows?","<p>Yes you can. I do it using the pythoncom libraries that come included with <a href=""http://www.activestate.com/Products/activepython/index.mhtml"" rel=""noreferrer"">ActivePython</a> or can be installed with <a href=""https://sourceforge.net/projects/pywin32/"" rel=""noreferrer"">pywin32</a> (Python for Windows extensions).</p>
+
+<p>This is a basic skeleton for a simple service:</p>
+
+<pre><code>import win32serviceutil
+import win32service
+import win32event
+import servicemanager
+import socket
+
+
+class AppServerSvc (win32serviceutil.ServiceFramework):
+    _svc_name_ = ""TestService""
+    _svc_display_name_ = ""Test Service""
+
+    def __init__(self,args):
+        win32serviceutil.ServiceFramework.__init__(self,args)
+        self.hWaitStop = win32event.CreateEvent(None,0,0,None)
+        socket.setdefaulttimeout(60)
+
+    def SvcStop(self):
+        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        win32event.SetEvent(self.hWaitStop)
+
+    def SvcDoRun(self):
+        servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
+                              servicemanager.PYS_SERVICE_STARTED,
+                              (self._svc_name_,''))
+        self.main()
+
+    def main(self):
+        pass
+
+if __name__ == '__main__':
+    win32serviceutil.HandleCommandLine(AppServerSvc)
+</code></pre>
+
+<p>Your code would go in the <code>main()</code> method—usually with some kind of infinite loop that might be interrupted by checking a flag, which you set in the <code>SvcStop</code> method</p>
+"
+"32899","32939","32939","How do you generate dynamic (parameterized) unit tests in Python?","<p>This is called &quot;parametrization&quot;.</p>
+<p>There are several tools that support this approach. E.g.:</p>
+<ul>
+<li><a href=""https://docs.pytest.org/en/latest/parametrize.html"" rel=""noreferrer"">pytest's decorator</a></li>
+<li><a href=""https://github.com/wolever/parameterized"" rel=""noreferrer"">parameterized</a></li>
+</ul>
+<p>The resulting code looks like this:</p>
+<pre><code>from parameterized import parameterized
+
+class TestSequence(unittest.TestCase):
+    @parameterized.expand([
+        [&quot;foo&quot;, &quot;a&quot;, &quot;a&quot;,],
+        [&quot;bar&quot;, &quot;a&quot;, &quot;b&quot;],
+        [&quot;lee&quot;, &quot;b&quot;, &quot;b&quot;],
+    ])
+    def test_sequence(self, name, a, b):
+        self.assertEqual(a,b)
+</code></pre>
+<p>Which will generate the tests:</p>
+<pre class=""lang-none prettyprint-override""><code>test_sequence_0_foo (__main__.TestSequence) ... ok
+test_sequence_1_bar (__main__.TestSequence) ... FAIL
+test_sequence_2_lee (__main__.TestSequence) ... ok
+
+======================================================================
+FAIL: test_sequence_1_bar (__main__.TestSequence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File &quot;/usr/local/lib/python2.7/site-packages/parameterized/parameterized.py&quot;, line 233, in &lt;lambda&gt;
+    standalone_func = lambda *a: func(*(a + p.args), **p.kwargs)
+  File &quot;x.py&quot;, line 12, in test_sequence
+    self.assertEqual(a,b)
+AssertionError: 'a' != 'b'
+</code></pre>
+<p>For historical reasons I'll leave the original answer circa 2008):</p>
+<p>I use something like this:</p>
+<pre><code>import unittest
+
+l = [[&quot;foo&quot;, &quot;a&quot;, &quot;a&quot;,], [&quot;bar&quot;, &quot;a&quot;, &quot;b&quot;], [&quot;lee&quot;, &quot;b&quot;, &quot;b&quot;]]
+
+class TestSequense(unittest.TestCase):
+    pass
+
+def test_generator(a, b):
+    def test(self):
+        self.assertEqual(a,b)
+    return test
+
+if __name__ == '__main__':
+    for t in l:
+        test_name = 'test_%s' % t[0]
+        test = test_generator(t[1], t[2])
+        setattr(TestSequense, test_name, test)
+    unittest.main()
+</code></pre>
+"
+"33475","33486","33486","ssh hangs when command invoked directly, but exits cleanly when run interactive","<blockquote>
+<pre><code>s = p.stderr.readline()
+</code></pre>
+</blockquote>
+
+<p>I suspect it's the above line.  When you invoke a command directly through ssh, you don't get your full pty (assuming Linux), and thus no stderr to read from.</p>
+
+<p>When you log in interactively, stdin, stdout, and stderr are set up for you, and so your script works.</p>
+"
+"33534","33563","33563","Extending base classes in Python","<p><code>int</code> is a value type, so each time you do an assignment, (e.g. both instances of <code>+=</code> above), it doesn't modify the object you have on the heap, but replaces the reference with one of the result of the right hand side of the assignment (i.e. an <code>int</code>)</p>
+<p><code>list</code> isn't a value type, so it isn't bound by the same rules.</p>
+<p>this page has more details on the differences: <a href=""https://docs.python.org/3/reference/datamodel.html"" rel=""nofollow noreferrer"">The Python Language Reference - 3. Data model</a></p>
+<p>IMO, yes, you should define a new class that keeps an int as an instance variable</p>
+"
+"33813","36316","36316","What are some useful TextMate features?","<p>Don't neglect the 'mate' command line tool. You can use it to pipe output into TextMate, so if you do the following...</p>
+
+<pre><code>diff file1.py file2.py | mate
+</code></pre>
+
+<p>...it will not only open in TextMate, but it is smart enough to know that you're looking at a diff and highlight lines on screen.</p>
+
+<p>TextMate's SVN integration is great; it also seems to have bundles for some other version control systems as well.</p>
+
+<p>Add GetBundle to browse the bundle repository. I found the jQuery bundle through it and it's very handy.</p>
+
+<p>As others have mentioned, rolling your own bundle for frequently used snippets is very helpful. If you have some snippets that are specific to a project or framework, you might want to prefix all of them with a common letter to keep the namespace tidy.</p>
+"
+"34079","41920303","41920303","How to specify an authenticated proxy for a python http connection?","<p>Use this:</p>
+
+<pre><code>import requests
+
+proxies = {""http"":""http://username:password@proxy_ip:proxy_port""}
+
+r = requests.get(""http://www.example.com/"", proxies=proxies)
+
+print(r.content)
+</code></pre>
+
+<p>I think it's much simpler than using <code>urllib</code>. I don't understand why people love using <code>urllib</code> so much.</p>
+"
+"34439","34452","34452","Finding what methods a Python object has","<p><strong>For many objects</strong>, you can use this code, replacing 'object' with the object you're interested in:</p>
+<pre class=""lang-py prettyprint-override""><code>object_methods = [method_name for method_name in dir(object)
+                  if callable(getattr(object, method_name))]
+</code></pre>
+<p>I discovered it at <a href=""https://web.archive.org/web/20180901124519/http://www.diveintopython.net/power_of_introspection/index.html"" rel=""noreferrer"">diveintopython.net</a> (now archived), that should provide some further details!</p>
+<p><strong>If you get an <code>AttributeError</code>, you can use this instead</strong>:</p>
+<p><code>getattr()</code> is intolerant of pandas style Python 3.6 abstract virtual sub-classes.  This code does the same as above and ignores exceptions.</p>
+<pre class=""lang-py prettyprint-override""><code>import pandas as pd
+df = pd.DataFrame([[10, 20, 30], [100, 200, 300]],
+                  columns=['foo', 'bar', 'baz'])
+def get_methods(object, spacing=20):
+  methodList = []
+  for method_name in dir(object):
+    try:
+        if callable(getattr(object, method_name)):
+            methodList.append(str(method_name))
+    except Exception:
+        methodList.append(str(method_name))
+  processFunc = (lambda s: ' '.join(s.split())) or (lambda s: s)
+  for method in methodList:
+    try:
+        print(str(method.ljust(spacing)) + ' ' +
+              processFunc(str(getattr(object, method).__doc__)[0:90]))
+    except Exception:
+        print(method.ljust(spacing) + ' ' + ' getattr() failed')
+
+get_methods(df['foo'])
+</code></pre>
+"
+"35538","35543","35543","Validate (X)HTML in Python","<p>XHTML is easy, use <a href=""http://lxml.de/validation.html"" rel=""noreferrer"">lxml</a>.</p>
+
+<pre><code>from lxml import etree
+from StringIO import StringIO
+etree.parse(StringIO(html), etree.HTMLParser(recover=False))
+</code></pre>
+
+<p>HTML is harder, since there's traditionally not been as much interest in validation among the HTML crowd (run StackOverflow itself through a validator, yikes). The easiest solution would be to execute external applications such as <a href=""http://www.jclark.com/sp/"" rel=""noreferrer"">nsgmls</a> or <a href=""http://openjade.sourceforge.net/"" rel=""noreferrer"">OpenJade</a>, and then parse their output.</p>
+"
+"35634","35635","35635","Ruby ""is"" equivalent","<p>Use <code>a.equal? b</code></p>
+
+<p><a href=""http://www.ruby-doc.org/core/classes/Object.html"" rel=""noreferrer"">http://www.ruby-doc.org/core/classes/Object.html</a></p>
+
+<blockquote>
+  <p>Unlike ==, the equal? method should never be overridden by subclasses: it is used to determine object identity (that is, a.equal?(b) iff a is the same object as b). </p>
+</blockquote>
+"
+"35805","35823","35823","Why is my instance variable not in __dict__?","<p><code>B.name</code> is a class attribute, not an instance attribute.  It shows up in <code>B.__dict__</code>, but not in <code>b = B(); b.__dict__</code>.</p>
+
+<p>The distinction is obscured somewhat because when you access an attribute on an instance, the class dict is a fallback.  So in the above example, <code>b.name</code> will give you the value of <code>B.name</code>.</p>
+"
+"35817","35857","35857","How to escape os.system() calls?","<p>This is what I use:</p>
+
+<pre><code>def shellquote(s):
+    return ""'"" + s.replace(""'"", ""'\\''"") + ""'""
+</code></pre>
+
+<p>The shell will always accept a quoted filename and remove the surrounding quotes before passing it to the program in question. Notably, this avoids problems with filenames that contain spaces or any other kind of nasty shell metacharacter.</p>
+
+<p><strong>Update</strong>: If you are using Python 3.3 or later, use <a href=""http://docs.python.org/dev/library/shlex.html#shlex.quote"" rel=""noreferrer"">shlex.quote</a> instead of rolling your own.</p>
+"
+"35948","50425","50425","Django templates and variable attributes","<p>I found a ""nicer""/""better"" solution for getting variables inside
+Its not the nicest way, but it works.</p>
+
+<p>You install a custom filter into django which gets the key of your dict as a parameter</p>
+
+<p>To make it work in google app-engine you need to add a file to your main directory,
+I called mine <em>django_hack.py</em> which contains this little piece of code</p>
+
+<pre><code>from google.appengine.ext import webapp
+
+register = webapp.template.create_template_register()
+
+def hash(h,key):
+    if key in h:
+        return h[key]
+    else:
+        return None
+
+register.filter(hash)
+</code></pre>
+
+<p>Now that we have this file, all we need to do is tell the app-engine to use it...
+we do that by adding this little line to your main file</p>
+
+<pre><code>webapp.template.register_template_library('django_hack')
+</code></pre>
+
+<p>and in your template view add this template instead of the usual code</p>
+
+<pre><code>{{ user|hash:item }}
+</code></pre>
+
+<p>And its should work perfectly =)</p>
+"
+"36139","36156","36156","How to sort a list of strings?","<p>Basic answer:</p>
+
+<pre><code>mylist = [""b"", ""C"", ""A""]
+mylist.sort()
+</code></pre>
+
+<p>This modifies your original list (i.e. sorts in-place). To get a sorted copy of the list, without changing the original, use the <a href=""http://docs.python.org/library/functions.html#sorted"" rel=""noreferrer""><code>sorted()</code></a> function:</p>
+
+<pre><code>for x in sorted(mylist):
+    print x
+</code></pre>
+
+<p>However, the examples above are a bit naive, because they don't take locale into account, and perform a case-sensitive sorting. You can take advantage of the optional parameter <code>key</code> to specify custom sorting order (the alternative, using <code>cmp</code>, is a deprecated solution, as it has to be evaluated multiple times - <code>key</code> is only computed once per element).</p>
+
+<p>So, to sort according to the current locale, taking language-specific rules into account (<a href=""http://docs.python.org/library/functools.html#functools.cmp_to_key"" rel=""noreferrer""><code>cmp_to_key</code></a> is a helper function from functools):</p>
+
+<pre><code>sorted(mylist, key=cmp_to_key(locale.strcoll))
+</code></pre>
+
+<p>And finally, if you need, you can specify a <a href=""http://docs.python.org/library/locale.html"" rel=""noreferrer"">custom locale</a> for sorting:</p>
+
+<pre><code>import locale
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8') # vary depending on your lang/locale
+assert sorted((u'Ab', u'ad', u'aa'),
+  key=cmp_to_key(locale.strcoll)) == [u'aa', u'Ab', u'ad']
+</code></pre>
+
+<p>Last note: you will see examples of case-insensitive sorting which use the <code>lower()</code> method - those are incorrect, because they work only for the ASCII subset of characters. Those two are wrong for any non-English data:</p>
+
+<pre><code># this is incorrect!
+mylist.sort(key=lambda x: x.lower())
+# alternative notation, a bit faster, but still wrong
+mylist.sort(key=str.lower)
+</code></pre>
+"
+"36324","36327","36327","""The system cannot find the file specified"" when invoking subprocess.Popen in python","<p>It's a bug, see the <a href=""http://docs.python.org/lib/node528.html"" rel=""noreferrer"">documentation of <code>subprocess.Popen</code></a>. There either needs to be a <code>""shell=True</code>"" option, or the first argument needs to be a sequence <code>['svn', '--version']</code>. As it is now, <code>Popen</code> is looking for an executable named, literally, ""svn --version"" which it doesn't find.</p>
+
+<p>I don't know why it would work for your colleagues though, if they are running the same OS and version of Python... FWIW it gives me the same error message on a mac, and either of the two ways I gave fixes it.</p>
+"
+"36647","36648","36648","Unit tests in Python","<p>Python has several testing frameworks, including <code>unittest</code>, <code>doctest</code>, and <code>nose</code>. The most xUnit-like is <code>unittest</code>, which is documented on Python.org.</p>
+
+<ul>
+<li><a href=""https://docs.python.org/3/library/unittest.html"" rel=""nofollow noreferrer""><code>unittest</code> documentation</a></li>
+<li><a href=""https://docs.python.org/3/library/doctest.html"" rel=""nofollow noreferrer""><code>doctest</code> documentation</a></li>
+</ul>
+"
+"36806","37009","37009","Setup django with WSGI and apache","<p>What happens if you remove the <code>Alias /</code> directive?</p>
+"
+"36812","36935","36935","How do I add data to an existing model in Django?","<p>You will want to wire your URL to the Django <a href=""https://docs.djangoproject.com/en/1.4/ref/generic-views/#django-views-generic-create-update-create-object"" rel=""nofollow noreferrer"">create_object generic view</a>, and pass it either ""model"" (the model you want to create) or ""form_class"" (a customized <a href=""https://docs.djangoproject.com/en/1.1/topics/forms/modelforms/#topics-forms-modelforms"" rel=""nofollow noreferrer"">ModelForm</a> class).  There are a number of <a href=""https://docs.djangoproject.com/en/1.4/ref/generic-views/#django-views-generic-create-update-create-object"" rel=""nofollow noreferrer"">other arguments</a> you can also pass to override default behaviors.</p>
+
+<p>Sample URLconf for the simplest case:</p>
+
+<pre><code>from django.conf.urls.defaults import *
+from django.views.generic.create_update import create_object
+
+from my_products_app.models import Product
+
+urlpatterns = patterns('',
+    url(r'^admin/products/add/$', create_object, {'model': Product}))
+</code></pre>
+
+<p>Your template will get the context variable ""form"", which you just need to wrap in a &lt;form> tag and add a submit button.  The simplest working template (by default should go in ""my_products_app/product_form.html""):</p>
+
+<pre><code>&lt;form action=""."" method=""POST""&gt;
+  {{ form }}
+  &lt;input type=""submit"" name=""submit"" value=""add""&gt;
+&lt;/form&gt;
+</code></pre>
+
+<p>Note that your Product model must have a get_absolute_url method, or else you must pass in the post_save_redirect parameter to the view.  Otherwise it won't know where to redirect to after save.</p>
+"
+"36901","36908","36908","What does ** (double star/asterisk) and * (star/asterisk) do for parameters?","<p>The <code>*args</code> and <code>**kwargs</code> is a common idiom to allow arbitrary number of arguments to functions as described in the section <a href=""http://docs.python.org/3/tutorial/controlflow.html#more-on-defining-functions"" rel=""noreferrer"">more on defining functions</a> in the Python documentation.</p>
+<p>The <code>*args</code> will give you all function parameters <a href=""https://docs.python.org/3/tutorial/controlflow.html#arbitrary-argument-lists"" rel=""noreferrer"">as a tuple</a>:</p>
+<pre><code>def foo(*args):
+    for a in args:
+        print(a)        
+
+foo(1)
+# 1
+
+foo(1,2,3)
+# 1
+# 2
+# 3
+</code></pre>
+<p>The <code>**kwargs</code> will give you all
+<strong>keyword arguments</strong> except for those corresponding to a formal parameter as a dictionary.</p>
+<pre><code>def bar(**kwargs):
+    for a in kwargs:
+        print(a, kwargs[a])  
+
+bar(name='one', age=27)
+# name one
+# age 27
+</code></pre>
+<p>Both idioms can be mixed with normal arguments to allow a set of fixed and some variable arguments:</p>
+<pre><code>def foo(kind, *args, **kwargs):
+   pass
+</code></pre>
+<p>It is also possible to use this the other way around:</p>
+<pre><code>def foo(a, b, c):
+    print(a, b, c)
+
+obj = {'b':10, 'c':'lee'}
+
+foo(100,**obj)
+# 100 10 lee
+</code></pre>
+<p>Another usage of the <code>*l</code> idiom is to <strong>unpack argument lists</strong> when calling a function.</p>
+<pre><code>def foo(bar, lee):
+    print(bar, lee)
+
+l = [1,2]
+
+foo(*l)
+# 1 2
+</code></pre>
+<p>In Python 3 it is possible to use <code>*l</code> on the left side of an assignment (<a href=""http://www.python.org/dev/peps/pep-3132/"" rel=""noreferrer"">Extended Iterable Unpacking</a>), though it gives a list instead of a tuple in this context:</p>
+<pre><code>first, *rest = [1,2,3,4]
+first, *l, last = [1,2,3,4]
+</code></pre>
+<p>Also Python 3 adds new semantic (refer <a href=""https://www.python.org/dev/peps/pep-3102/"" rel=""noreferrer"">PEP 3102</a>):</p>
+<pre><code>def func(arg1, arg2, arg3, *, kwarg1, kwarg2):
+    pass
+</code></pre>
+<p>For example the following works in python 3 but not python 2:</p>
+<pre><code>&gt;&gt;&gt; x = [1, 2]
+&gt;&gt;&gt; [*x]
+[1, 2]
+&gt;&gt;&gt; [*x, 3, 4]
+[1, 2, 3, 4]
+
+&gt;&gt;&gt; x = {1:1, 2:2}
+&gt;&gt;&gt; x
+{1: 1, 2: 2}
+&gt;&gt;&gt; {**x, 3:3, 4:4}
+{1: 1, 2: 2, 3: 3, 4: 4}
+</code></pre>
+<p>Such function accepts only 3 positional arguments, and everything after <code>*</code> can only be passed as keyword arguments.</p>
+<h3>Note:</h3>
+<ul>
+<li>A Python <code>dict</code>, semantically used for keyword argument passing, are arbitrarily ordered. However, in Python 3.6, keyword arguments are guaranteed to remember insertion order.</li>
+<li>&quot;The order of elements in <code>**kwargs</code> now corresponds to the order in which keyword arguments were passed to the function.&quot; - <a href=""https://docs.python.org/3/whatsnew/3.6.html"" rel=""noreferrer"">What’s New In Python 3.6</a></li>
+<li>In fact, all dicts in CPython 3.6 will remember insertion order as an implementation detail, this becomes standard in Python 3.7.</li>
+</ul>
+"
+"36932","1695250","1695250","How can I represent an 'Enum' in Python?","<p><a href=""https://docs.python.org/3/library/enum.html"" rel=""noreferrer"">Enums</a> have been added to Python 3.4 as described in <a href=""http://www.python.org/dev/peps/pep-0435/"" rel=""noreferrer"">PEP 435</a>.  It has also been <a href=""https://pypi.python.org/pypi/enum34"" rel=""noreferrer"">backported to 3.3, 3.2, 3.1, 2.7, 2.6, 2.5, and 2.4</a> on pypi.</p>
+<p>For more advanced Enum techniques try the <a href=""https://pypi.python.org/pypi/aenum"" rel=""noreferrer"">aenum library</a> (2.7, 3.3+, same author as <code>enum34</code>. Code is not perfectly compatible between py2 and py3, e.g. you'll need <a href=""https://stackoverflow.com/a/25982264/57461""><code>__order__</code> in python 2</a>).</p>
+<ul>
+<li>To use <code>enum34</code>, do <code>$ pip install enum34</code></li>
+<li>To use <code>aenum</code>, do <code>$ pip install aenum</code></li>
+</ul>
+<p>Installing <code>enum</code> (no numbers) will install a completely different and incompatible version.</p>
+<hr />
+<pre><code>from enum import Enum     # for enum34, or the stdlib version
+# from aenum import Enum  # for the aenum version
+Animal = Enum('Animal', 'ant bee cat dog')
+
+Animal.ant  # returns &lt;Animal.ant: 1&gt;
+Animal['ant']  # returns &lt;Animal.ant: 1&gt; (string lookup)
+Animal.ant.name  # returns 'ant' (inverse lookup)
+</code></pre>
+<p>or equivalently:</p>
+<pre><code>class Animal(Enum):
+    ant = 1
+    bee = 2
+    cat = 3
+    dog = 4
+</code></pre>
+<hr />
+<p>In earlier versions, one way of accomplishing enums is:</p>
+<pre><code>def enum(**enums):
+    return type('Enum', (), enums)
+</code></pre>
+<p>which is used like so:</p>
+<pre><code>&gt;&gt;&gt; Numbers = enum(ONE=1, TWO=2, THREE='three')
+&gt;&gt;&gt; Numbers.ONE
+1
+&gt;&gt;&gt; Numbers.TWO
+2
+&gt;&gt;&gt; Numbers.THREE
+'three'
+</code></pre>
+<p>You can also easily support automatic enumeration with something like this:</p>
+<pre><code>def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    return type('Enum', (), enums)
+</code></pre>
+<p>and used like so:</p>
+<pre><code>&gt;&gt;&gt; Numbers = enum('ZERO', 'ONE', 'TWO')
+&gt;&gt;&gt; Numbers.ZERO
+0
+&gt;&gt;&gt; Numbers.ONE
+1
+</code></pre>
+<p>Support for converting the values back to names can be added this way:</p>
+<pre><code>def enum(*sequential, **named):
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    reverse = dict((value, key) for key, value in enums.iteritems())
+    enums['reverse_mapping'] = reverse
+    return type('Enum', (), enums)
+</code></pre>
+<p>This overwrites anything with that name, but it is useful for rendering your enums in output. It will throw a <code>KeyError</code> if the reverse mapping doesn't exist. With the first example:</p>
+<pre><code>&gt;&gt;&gt; Numbers.reverse_mapping['three']
+'THREE'
+</code></pre>
+<hr />
+<p>If you are using MyPy another way to express &quot;enums&quot; is with <a href=""https://mypy.readthedocs.io/en/stable/literal_types.html#parameterizing-literals"" rel=""noreferrer""><code>typing.Literal</code></a>.</p>
+<p>For example:</p>
+<pre class=""lang-py prettyprint-override""><code>from typing import Literal #python &gt;=3.8
+from typing_extensions import Literal #python 2.7, 3.4-3.7
+
+
+Animal = Literal['ant', 'bee', 'cat', 'dog']
+
+def hello_animal(animal: Animal):
+    print(f&quot;hello {animal}&quot;)
+
+hello_animal('rock') # error
+hello_animal('bee') # passes
+
+</code></pre>
+"
+"37479","37571","37571","How can I simply inherit methods from an existing instance?","<blockquote>
+  <p>Very close, but then I lose everything from ClassX. Below is something a collegue gave me that does do the trick, but it's hideous. There has to be a better way.</p>
+</blockquote>
+
+<p>Looks like you're trying to set up some sort of proxy object scheme. That's doable, and there are better solutions than your colleague's, but first consider whether it would be easier to just patch in some extra methods. This won't work for built-in classes like <code>bool</code>, but it will for your user-defined classes:</p>
+
+<pre><code>def HTMLDecorator (obj):
+    def html ():
+        sep = cgi.escape (repr (obj))
+        return sep.join ((""&lt;H1&gt;"", ""&lt;/H1&gt;""))
+    obj.html = html
+    return obj
+</code></pre>
+
+<p>And here is the proxy version:</p>
+
+<pre><code>class HTMLDecorator(object):
+    def __init__ (self, wrapped):
+        self.__wrapped = wrapped
+
+    def html (self):
+        sep = cgi.escape (repr (self.__wrapped))
+        return sep.join ((""&lt;H1&gt;"", ""&lt;/H1&gt;""))
+
+    def __getattr__ (self, name):
+        return getattr (self.__wrapped, name)
+
+    def __setattr__ (self, name, value):
+        if not name.startswith ('_HTMLDecorator__'):
+            setattr (self.__wrapped, name, value)
+            return
+        super (HTMLDecorator, self).__setattr__ (name, value)
+
+    def __delattr__ (self, name):
+        delattr (self.__wraped, name)
+</code></pre>
+"
+"37486","37512","37512","Filter out HTML tags and resolve entities in python","<p>Use <a href=""http://lxml.de/"" rel=""nofollow noreferrer"">lxml</a> which is the best xml/html library for python.</p>
+
+<pre><code>import lxml.html
+t = lxml.html.fromstring(""..."")
+t.text_content()
+</code></pre>
+
+<p>And if you just want to sanitize the html look at the lxml.html.clean <a href=""http://lxml.de/lxmlhtml.html#cleaning-up-html"" rel=""nofollow noreferrer"">module</a></p>
+"
+"38056","38230","38230","How to check if a process is still running using Python on Linux?","<p>Mark's answer is the way to go, after all, that's why the /proc file system is there. For something a little more copy/pasteable:</p>
+
+<pre><code> &gt;&gt;&gt; import os.path
+ &gt;&gt;&gt; os.path.exists(""/proc/0"")
+ False
+ &gt;&gt;&gt; os.path.exists(""/proc/12"")
+ True
+</code></pre>
+"
+"38197","38222","38222","Why is the subprocess.Popen class not named Subprocess?","<p>Now, I'm not saying that this is the greatest name in the world, but here was the idea as I understand it.</p>
+
+<p>Originally, the popen family was in the os module and was an implementation of the venerable posix popen.  The movement to the subprocess module would have been an opportune time to rename them, but I guess that keeping Popen makes it easier to find in the docs for those who have a long history with python or even to the venerable posix functions.</p>
+
+<p>From its earliest posix incarnation, <code>Popen</code> has always been meant to open a Process and allow you to read and write from its stdio like a file. Thus the mnemonic for <code>Popen</code> is that it is short for <code>ProcessOpen</code> in an attempt to kind of, sorta, look like open.</p>
+"
+"38238","38276","38276","What is the purpose of class methods?","<p>Class methods are for when you need to have methods that aren't specific to any particular instance, but still involve the class in some way. The most interesting thing about them is that they can be overridden by subclasses, something that's simply not possible in Java's static methods or Python's module-level functions.</p>
+
+<p>If you have a class <code>MyClass</code>, and a module-level function that operates on MyClass (factory, dependency injection stub, etc), make it a <code>classmethod</code>. Then it'll be available to subclasses.</p>
+"
+"38435","38718","38718","Retrieving an Oracle timestamp using Python's Win32 ODBC module","<p>I believe this is a bug in the Oracle ODBC driver. Basically, the Oracle ODBC driver does not support the <code>TIMESTAMP WITH (LOCAL) TIME ZONE</code> data types, only the <code>TIMESTAMP</code> data type. As you have discovered, one workaround is in fact to use the <code>TO_CHAR</code> method.</p>
+
+<p>In your example you are not actually reading the time zone information. If you have control of the table you could convert it to a straight <code>TIMESTAMP</code> column. If you don't have control over the table, another solution may be to create a view that converts from <code>TIMESTAMP WITH TIME ZONE</code> to <code>TIMESTAMP</code> via a string - sorry, I don't know if there is a way to convert directly from <code>TIMESTAMP WITH TIME ZONE</code> to <code>TIMESTAMP</code>.</p>
+"
+"38508","38516","38516","What's the best way to return multiple values from a function?","<pre><code>def f(in_str):
+    out_str = in_str.upper()
+    return True, out_str # Creates tuple automatically
+
+succeeded, b = f(""a"") # Automatic tuple unpacking
+</code></pre>
+"
+"38601","38916","38916","Using Django time/date widgets in custom form","<p>The growing complexity of this answer over time, and the many hacks required, probably ought to caution you against doing this at all. It's relying on undocumented internal implementation details of the admin, is likely to break again in future versions of Django, and is no easier to implement than just finding another JS calendar widget and using that.</p>
+<p>That said, here's what you have to do if you're determined to make this work:</p>
+<ol>
+<li><p>Define your own <code>ModelForm</code> subclass for your model (best to put it in forms.py in your app), and tell it to use the <code>AdminDateWidget</code> / <code>AdminTimeWidget</code> / <code>AdminSplitDateTime</code> (replace 'mydate' etc with the proper field names from your model):</p>
+<pre><code> from django import forms
+ from my_app.models import Product
+ from django.contrib.admin import widgets                                       
+
+ class ProductForm(forms.ModelForm):
+     class Meta:
+         model = Product
+     def __init__(self, *args, **kwargs):
+         super(ProductForm, self).__init__(*args, **kwargs)
+         self.fields['mydate'].widget = widgets.AdminDateWidget()
+         self.fields['mytime'].widget = widgets.AdminTimeWidget()
+         self.fields['mydatetime'].widget = widgets.AdminSplitDateTime()
+</code></pre>
+</li>
+<li><p>Change your URLconf to pass <code>'form_class': ProductForm</code> instead of <code>'model': Product</code> to the generic <code>create_object</code> view (that'll mean <code>from my_app.forms import ProductForm</code> instead of <code>from my_app.models import Product</code>, of course).</p>
+</li>
+<li><p>In the head of your template, include <code>{{ form.media }}</code> to output the links to the Javascript files.</p>
+</li>
+<li><p>And the hacky part: the admin date/time widgets presume that the i18n JS stuff has been loaded, and also require core.js, but don't provide either one automatically.  So in your template above <code>{{ form.media }}</code> you'll need:</p>
+<pre><code> &lt;script type=&quot;text/javascript&quot; src=&quot;/my_admin/jsi18n/&quot;&gt;&lt;/script&gt;
+ &lt;script type=&quot;text/javascript&quot; src=&quot;/media/admin/js/core.js&quot;&gt;&lt;/script&gt;
+</code></pre>
+</li>
+</ol>
+<p>You may also wish to use the following admin CSS (thanks <a href=""https://stackoverflow.com/questions/38601/using-django-time-date-widgets-in-custom-form/719583#719583"">Alex</a> for mentioning this):</p>
+<pre><code>    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/media/admin/css/forms.css&quot;/&gt;
+    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/media/admin/css/base.css&quot;/&gt;
+    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/media/admin/css/global.css&quot;/&gt;
+    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/media/admin/css/widgets.css&quot;/&gt;
+</code></pre>
+<p>This implies that Django's admin media (<code>ADMIN_MEDIA_PREFIX</code>) is at /media/admin/ - you can change that for your setup.  Ideally you'd use a context processor to pass this values to your template instead of hardcoding it, but that's beyond the scope of this question.</p>
+<p>This also requires that the URL /my_admin/jsi18n/ be manually wired up to the django.views.i18n.javascript_catalog view (or null_javascript_catalog if you aren't using I18N).  You have to do this yourself instead of going through the admin application so it's accessible regardless of whether you're logged into the admin (thanks <a href=""https://stackoverflow.com/questions/38601/using-django-time-date-widgets-in-custom-form/408230#408230"">Jeremy</a> for pointing this out).  Sample code for your URLconf:</p>
+<pre><code>(r'^my_admin/jsi18n', 'django.views.i18n.javascript_catalog'),
+</code></pre>
+<p>Lastly, if you are using Django 1.2 or later, you need some additional code in your template to help the widgets find their media:</p>
+<pre><code>{% load adminmedia %} /* At the top of the template. */
+
+/* In the head section of the template. */
+&lt;script type=&quot;text/javascript&quot;&gt;
+window.__admin_media_prefix__ = &quot;{% filter escapejs %}{% admin_media_prefix %}{% endfilter %}&quot;;
+&lt;/script&gt;
+</code></pre>
+<p>Thanks <a href=""https://stackoverflow.com/questions/38601/using-django-time-date-widgets-in-custom-form/2818128#2818128"">lupefiasco</a> for this addition.</p>
+"
+"38987","26853961","26853961","How do I merge two dictionaries in a single expression in Python?","<h2>How can I merge two Python dictionaries in a single expression?</h2>
+<p>For dictionaries <code>x</code> and <code>y</code>, their shallowly-merged dictionary <code>z</code> takes values from <code>y</code>, replacing those from <code>x</code>.</p>
+<ul>
+<li><p>In Python 3.9.0 or greater (released 17 October 2020, <a href=""https://www.python.org/dev/peps/pep-0584/"" rel=""noreferrer""><code>PEP-584</code></a>, <a href=""https://bugs.python.org/issue36144"" rel=""noreferrer"">discussed here</a>):</p>
+<pre class=""lang-py prettyprint-override""><code>z = x | y
+</code></pre>
+</li>
+<li><p>In Python 3.5 or greater:</p>
+<pre class=""lang-py prettyprint-override""><code>z = {**x, **y}
+</code></pre>
+</li>
+<li><p>In Python 2, (or 3.4 or lower) write a function:</p>
+<pre class=""lang-py prettyprint-override""><code>def merge_two_dicts(x, y):
+    z = x.copy()   # start with keys and values of x
+    z.update(y)    # modifies z with keys and values of y
+    return z
+</code></pre>
+<p>and now:</p>
+<pre class=""lang-py prettyprint-override""><code>z = merge_two_dicts(x, y)
+</code></pre>
+</li>
+</ul>
+<h3>Explanation</h3>
+<p>Say you have two dictionaries and you want to merge them into a new dictionary without altering the original dictionaries:</p>
+<pre class=""lang-py prettyprint-override""><code>x = {'a': 1, 'b': 2}
+y = {'b': 3, 'c': 4}
+</code></pre>
+<p>The desired result is to get a new dictionary (<code>z</code>) with the values merged, and the second dictionary's values overwriting those from the first.</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; z
+{'a': 1, 'b': 3, 'c': 4}
+</code></pre>
+<p>A new syntax for this, proposed in <a href=""https://www.python.org/dev/peps/pep-0448"" rel=""noreferrer"">PEP 448</a> and <a href=""https://mail.python.org/pipermail/python-dev/2015-February/138564.html"" rel=""noreferrer"">available as of Python 3.5</a>, is</p>
+<pre class=""lang-py prettyprint-override""><code>z = {**x, **y}
+</code></pre>
+<p>And it is indeed a single expression.</p>
+<p>Note that we can merge in with literal notation as well:</p>
+<pre class=""lang-py prettyprint-override""><code>z = {**x, 'foo': 1, 'bar': 2, **y}
+</code></pre>
+<p>and now:</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; z
+{'a': 1, 'b': 3, 'foo': 1, 'bar': 2, 'c': 4}
+</code></pre>
+<p>It is now showing as implemented in the <a href=""https://www.python.org/dev/peps/pep-0478/#features-for-3-5"" rel=""noreferrer"">release schedule for 3.5, PEP 478</a>, and it has now made its way into the <a href=""https://docs.python.org/dev/whatsnew/3.5.html#pep-448-additional-unpacking-generalizations"" rel=""noreferrer"">What's New in Python 3.5</a> document.</p>
+<p>However, since many organizations are still on Python 2, you may wish to do this in a backward-compatible way. The classically Pythonic way, available in Python 2 and Python 3.0-3.4, is to do this as a two-step process:</p>
+<pre class=""lang-py prettyprint-override""><code>z = x.copy()
+z.update(y) # which returns None since it mutates z
+</code></pre>
+<p>In both approaches, <code>y</code> will come second and its values will replace <code>x</code>'s values, thus <code>b</code> will point to <code>3</code> in our final result.</p>
+<h2>Not yet on Python 3.5, but want a <em>single expression</em></h2>
+<p>If you are not yet on Python 3.5 or need to write backward-compatible code, and you want this in a <em>single expression</em>, the most performant while the correct approach is to put it in a function:</p>
+<pre class=""lang-py prettyprint-override""><code>def merge_two_dicts(x, y):
+    &quot;&quot;&quot;Given two dictionaries, merge them into a new dict as a shallow copy.&quot;&quot;&quot;
+    z = x.copy()
+    z.update(y)
+    return z
+</code></pre>
+<p>and then you have a single expression:</p>
+<pre class=""lang-py prettyprint-override""><code>z = merge_two_dicts(x, y)
+</code></pre>
+<p>You can also make a function to merge an arbitrary number of dictionaries, from zero to a very large number:</p>
+<pre class=""lang-py prettyprint-override""><code>def merge_dicts(*dict_args):
+    &quot;&quot;&quot;
+    Given any number of dictionaries, shallow copy and merge into a new dict,
+    precedence goes to key-value pairs in latter dictionaries.
+    &quot;&quot;&quot;
+    result = {}
+    for dictionary in dict_args:
+        result.update(dictionary)
+    return result
+</code></pre>
+<p>This function will work in Python 2 and 3 for all dictionaries. e.g. given dictionaries <code>a</code> to <code>g</code>:</p>
+<pre class=""lang-py prettyprint-override""><code>z = merge_dicts(a, b, c, d, e, f, g) 
+</code></pre>
+<p>and key-value pairs in <code>g</code> will take precedence over dictionaries <code>a</code> to <code>f</code>, and so on.</p>
+<h2>Critiques of Other Answers</h2>
+<p>Don't use what you see in the formerly accepted answer:</p>
+<pre class=""lang-py prettyprint-override""><code>z = dict(x.items() + y.items())
+</code></pre>
+<p>In Python 2, you create two lists in memory for each dict, create a third list in memory with length equal to the length of the first two put together, and then discard all three lists to create the dict. <strong>In Python 3, this will fail</strong> because you're adding two <code>dict_items</code> objects together, not two lists -</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; c = dict(a.items() + b.items())
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: unsupported operand type(s) for +: 'dict_items' and 'dict_items'
+</code></pre>
+<p>and you would have to explicitly create them as lists, e.g. <code>z = dict(list(x.items()) + list(y.items()))</code>. This is a waste of resources and computation power.</p>
+<p>Similarly, taking the union of <code>items()</code> in Python 3 (<code>viewitems()</code> in Python 2.7) will also fail when values are unhashable objects (like lists, for example). Even if your values are hashable, <strong>since sets are semantically unordered, the behavior is undefined in regards to precedence. So don't do this:</strong></p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; c = dict(a.items() | b.items())
+</code></pre>
+<p>This example demonstrates what happens when values are unhashable:</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; x = {'a': []}
+&gt;&gt;&gt; y = {'b': []}
+&gt;&gt;&gt; dict(x.items() | y.items())
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: unhashable type: 'list'
+</code></pre>
+<p>Here's an example where <code>y</code> should have precedence, but instead the value from <code>x</code> is retained due to the arbitrary order of sets:</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; x = {'a': 2}
+&gt;&gt;&gt; y = {'a': 1}
+&gt;&gt;&gt; dict(x.items() | y.items())
+{'a': 2}
+</code></pre>
+<p>Another hack you should not use:</p>
+<pre class=""lang-py prettyprint-override""><code>z = dict(x, **y)
+</code></pre>
+<p>This uses the <code>dict</code> constructor and is very fast and memory-efficient (even slightly more so than our two-step process) but unless you know precisely what is happening here (that is, the second dict is being passed as keyword arguments to the dict constructor), it's difficult to read, it's not the intended usage, and so it is not Pythonic.</p>
+<p>Here's an example of the usage being <a href=""https://code.djangoproject.com/attachment/ticket/13357/django-pypy.2.diff"" rel=""noreferrer"">remediated in django</a>.</p>
+<p>Dictionaries are intended to take hashable keys (e.g. <code>frozenset</code>s or tuples), but <strong>this method fails in Python 3 when keys are not strings.</strong></p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; c = dict(a, **b)
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: keyword arguments must be strings
+</code></pre>
+<p>From the <a href=""https://mail.python.org/pipermail/python-dev/2010-April/099459.html"" rel=""noreferrer"">mailing list</a>, Guido van Rossum, the creator of the language, wrote:</p>
+<blockquote>
+<p>I am fine with
+declaring dict({}, **{1:3}) illegal, since after all it is abuse of
+the ** mechanism.</p>
+</blockquote>
+<p>and</p>
+<blockquote>
+<p>Apparently dict(x, **y) is going around as &quot;cool hack&quot; for &quot;call
+x.update(y) and return x&quot;. Personally, I find it more despicable than
+cool.</p>
+</blockquote>
+<p>It is my understanding (as well as the understanding of the <a href=""https://mail.python.org/pipermail/python-dev/2010-April/099485.html"" rel=""noreferrer"">creator of the language</a>) that the intended usage for <code>dict(**y)</code> is for creating dictionaries for readability purposes, e.g.:</p>
+<pre class=""lang-py prettyprint-override""><code>dict(a=1, b=10, c=11)
+</code></pre>
+<p>instead of</p>
+<pre class=""lang-py prettyprint-override""><code>{'a': 1, 'b': 10, 'c': 11}
+</code></pre>
+<h2>Response to comments</h2>
+<blockquote>
+<p>Despite what Guido says, <code>dict(x, **y)</code> is in line with the dict specification, which btw. works for both Python 2 and 3. The fact that this only works for string keys is a direct consequence of how keyword parameters work and not a short-coming of dict. Nor is using the ** operator in this place an abuse of the mechanism, in fact, ** was designed precisely to pass dictionaries as keywords.</p>
+</blockquote>
+<p>Again, it doesn't work for 3 when keys are not strings. The implicit calling contract is that namespaces take ordinary dictionaries, while users must only pass keyword arguments that are strings. All other callables enforced it. <code>dict</code> broke this consistency in Python 2:</p>
+<pre><code>&gt;&gt;&gt; foo(**{('a', 'b'): None})
+Traceback (most recent call last):
+  File &quot;&lt;stdin&gt;&quot;, line 1, in &lt;module&gt;
+TypeError: foo() keywords must be strings
+&gt;&gt;&gt; dict(**{('a', 'b'): None})
+{('a', 'b'): None}
+</code></pre>
+<p>This inconsistency was bad given other implementations of Python (PyPy, Jython, IronPython). Thus it was fixed in Python 3, as this usage could be a breaking change.</p>
+<p>I submit to you that it is malicious incompetence to intentionally write code that only works in one version of a language or that only works given certain arbitrary constraints.</p>
+<p>More comments:</p>
+<blockquote>
+<p><code>dict(x.items() + y.items())</code> is still the most readable solution for Python 2. Readability counts.</p>
+</blockquote>
+<p>My response: <code>merge_two_dicts(x, y)</code> actually seems much clearer to me, if we're actually concerned about readability. And it is not forward compatible, as Python 2 is increasingly deprecated.</p>
+<blockquote>
+<p><code>{**x, **y}</code> does not seem to handle nested dictionaries. the contents of nested keys are simply overwritten, not merged [...] I ended up being burnt by these answers that do not merge recursively and I was surprised no one mentioned it. In my interpretation of the word &quot;merging&quot; these answers describe &quot;updating one dict with another&quot;, and not merging.</p>
+</blockquote>
+<p>Yes. I must refer you back to the question, which is asking for a <em>shallow</em> merge of <em><strong>two</strong></em> dictionaries, with the first's values being overwritten by the second's - in a single expression.</p>
+<p>Assuming two dictionaries of dictionaries, one might recursively merge them in a single function, but you should be careful not to modify the dictionaries from either source, and the surest way to avoid that is to make a copy when assigning values. As keys must be hashable and are usually therefore immutable, it is pointless to copy them:</p>
+<pre class=""lang-py prettyprint-override""><code>from copy import deepcopy
+
+def dict_of_dicts_merge(x, y):
+    z = {}
+    overlapping_keys = x.keys() &amp; y.keys()
+    for key in overlapping_keys:
+        z[key] = dict_of_dicts_merge(x[key], y[key])
+    for key in x.keys() - overlapping_keys:
+        z[key] = deepcopy(x[key])
+    for key in y.keys() - overlapping_keys:
+        z[key] = deepcopy(y[key])
+    return z
+</code></pre>
+<p>Usage:</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; x = {'a':{1:{}}, 'b': {2:{}}}
+&gt;&gt;&gt; y = {'b':{10:{}}, 'c': {11:{}}}
+&gt;&gt;&gt; dict_of_dicts_merge(x, y)
+{'b': {2: {}, 10: {}}, 'a': {1: {}}, 'c': {11: {}}}
+</code></pre>
+<p>Coming up with contingencies for other value types is far beyond the scope of this question, so I will point you at <a href=""https://stackoverflow.com/a/24088493/541136"">my answer to the canonical question on a &quot;Dictionaries of dictionaries merge&quot;</a>.</p>
+<h2>Less Performant But Correct Ad-hocs</h2>
+<p>These approaches are less performant, but they will provide correct behavior.
+They will be <em>much less</em> performant than <code>copy</code> and <code>update</code> or the new unpacking because they iterate through each key-value pair at a higher level of abstraction, but they <em>do</em> respect the order of precedence (latter dictionaries have precedence)</p>
+<p>You can also chain the dictionaries manually inside a <a href=""https://www.python.org/dev/peps/pep-0274/"" rel=""noreferrer"">dict comprehension</a>:</p>
+<pre class=""lang-py prettyprint-override""><code>{k: v for d in dicts for k, v in d.items()} # iteritems in Python 2.7
+</code></pre>
+<p>or in Python 2.6 (and perhaps as early as 2.4 when generator expressions were introduced):</p>
+<pre class=""lang-py prettyprint-override""><code>dict((k, v) for d in dicts for k, v in d.items()) # iteritems in Python 2
+</code></pre>
+<p><code>itertools.chain</code> will chain the iterators over the key-value pairs in the correct order:</p>
+<pre class=""lang-py prettyprint-override""><code>from itertools import chain
+z = dict(chain(x.items(), y.items())) # iteritems in Python 2
+</code></pre>
+<h2>Performance Analysis</h2>
+<p>I'm only going to do the performance analysis of the usages known to behave correctly. (Self-contained so you can copy and paste yourself.)</p>
+<pre class=""lang-py prettyprint-override""><code>from timeit import repeat
+from itertools import chain
+
+x = dict.fromkeys('abcdefg')
+y = dict.fromkeys('efghijk')
+
+def merge_two_dicts(x, y):
+    z = x.copy()
+    z.update(y)
+    return z
+
+min(repeat(lambda: {**x, **y}))
+min(repeat(lambda: merge_two_dicts(x, y)))
+min(repeat(lambda: {k: v for d in (x, y) for k, v in d.items()}))
+min(repeat(lambda: dict(chain(x.items(), y.items()))))
+min(repeat(lambda: dict(item for d in (x, y) for item in d.items())))
+</code></pre>
+<p>In Python 3.8.1, NixOS:</p>
+<pre class=""lang-py prettyprint-override""><code>&gt;&gt;&gt; min(repeat(lambda: {**x, **y}))
+1.0804965235292912
+&gt;&gt;&gt; min(repeat(lambda: merge_two_dicts(x, y)))
+1.636518670246005
+&gt;&gt;&gt; min(repeat(lambda: {k: v for d in (x, y) for k, v in d.items()}))
+3.1779992282390594
+&gt;&gt;&gt; min(repeat(lambda: dict(chain(x.items(), y.items()))))
+2.740647904574871
+&gt;&gt;&gt; min(repeat(lambda: dict(item for d in (x, y) for item in d.items())))
+4.266070580109954
+</code></pre>
+<pre class=""lang-sh prettyprint-override""><code>$ uname -a
+Linux nixos 4.19.113 #1-NixOS SMP Wed Mar 25 07:06:15 UTC 2020 x86_64 GNU/Linux
+</code></pre>
+<h2>Resources on Dictionaries</h2>
+<ul>
+<li><a href=""https://stackoverflow.com/questions/327311/how-are-pythons-built-in-dictionaries-implemented/44509302#44509302"">My explanation of Python's <strong>dictionary implementation</strong>, updated for 3.6.</a></li>
+<li><a href=""https://stackoverflow.com/questions/1024847/add-new-keys-to-a-dictionary/27208535#27208535"">Answer on how to add new keys to a dictionary</a></li>
+<li><a href=""https://stackoverflow.com/questions/209840/map-two-lists-into-a-dictionary-in-python/33737067#33737067"">Mapping two lists into a dictionary</a></li>
+<li><a href=""https://docs.python.org/3/tutorial/datastructures.html#dictionaries"" rel=""noreferrer"">The official Python docs on dictionaries</a></li>
+<li><a href=""https://www.youtube.com/watch?v=66P5FMkWoVU"" rel=""noreferrer"">The Dictionary Even Mightier</a> - talk by Brandon Rhodes at Pycon 2017</li>
+<li><a href=""https://www.youtube.com/watch?v=npw4s1QTmPg"" rel=""noreferrer"">Modern Python Dictionaries, A Confluence of Great Ideas</a> - talk by Raymond Hettinger at Pycon 2017</li>
+</ul>
+"
+"39086","39110","39110","Search and replace a line in a file in Python","<p>I guess something like this should do it. It basically writes the content to a new file and replaces the old file with the new file:</p>
+
+<pre><code>from tempfile import mkstemp
+from shutil import move, copymode
+from os import fdopen, remove
+
+def replace(file_path, pattern, subst):
+    #Create temp file
+    fh, abs_path = mkstemp()
+    with fdopen(fh,'w') as new_file:
+        with open(file_path) as old_file:
+            for line in old_file:
+                new_file.write(line.replace(pattern, subst))
+    #Copy the file permissions from the old file to the new file
+    copymode(file_path, abs_path)
+    #Remove original file
+    remove(file_path)
+    #Move new file
+    move(abs_path, file_path)
+</code></pre>
+"
+"39960","40173","40173","Javascript equivalent of Python's locals()?","<ul>
+<li><p>locals() - No. </p></li>
+<li><p>globals() - Yes.</p></li>
+</ul>
+
+<p><code>window</code> is a reference to the global scope, like <code>globals()</code> in python.</p>
+
+<pre><code>globals()[""foo""]
+</code></pre>
+
+<p>is the same as:</p>
+
+<pre><code>window[""foo""]
+</code></pre>
+"
+"40586","40593","40593","cx_Oracle: how do I get the ORA-xxxxx error number?","<pre><code>try:
+   cursor.execute(""select 1 / 0 from dual"")
+except cx_Oracle.DatabaseError, e:
+   error, = e
+   print ""Code:"", error.code
+   print ""Message:"", error.message
+</code></pre>
+
+<p>This results in the following output:</p>
+
+<pre><code>Code: 1476
+Message: ORA-01476: divisor is equal to zero
+</code></pre>
+"
+"41701","41707","41707","Splitting tuples in Python - best practice?","<p>I'd say that a dictionary is definitely the best way to do it.  It's easily extensible, allows you to give each value a sensible name, and Python has a lot of built-in language features for using and manipulating dictionaries.  If you need to add more fields later, all you need to change is the code that converts the tuple to a dictionary and the code that actually makes use of the new values.</p>
+
+<p>For example:</p>
+
+<pre><code>job={}
+job['jobid'], job['label'], job['username']=&lt;querycode&gt;
+</code></pre>
+"
+"41969","42046","42046","Standard way to open a folder window in linux?","<pre><code>os.system('xdg-open ""%s""' % foldername)
+</code></pre>
+
+<p><code>xdg-open</code> can be used for files/urls also</p>
+"
+"42482","43364","43364","Best way to extract text from a Word doc without using COM/automation?","<p>I use catdoc or antiword for this, whatever gives the result that is the easiest to parse. I have embedded this in python functions, so it is easy to use from the parsing system (which is written in python).</p>
+
+<pre><code>import os
+
+def doc_to_text_catdoc(filename):
+    (fi, fo, fe) = os.popen3('catdoc -w ""%s""' % filename)
+    fi.close()
+    retval = fo.read()
+    erroroutput = fe.read()
+    fo.close()
+    fe.close()
+    if not erroroutput:
+        return retval
+    else:
+        raise OSError(""Executing the command caused an error: %s"" % erroroutput)
+
+# similar doc_to_text_antiword()
+</code></pre>
+
+<p>The -w switch to catdoc turns off line wrapping, BTW.</p>
+"
+"42581","42597","42597","Python re.sub with a flag does not replace all occurrences","<p>Look at the definition of <a href=""http://docs.python.org/library/re.html#re.sub"" rel=""noreferrer""><code>re.sub</code></a>:</p>
+
+<pre><code>re.sub(pattern, repl, string[, count, flags])
+</code></pre>
+
+<p>The 4th argument is the count, you are using <code>re.MULTILINE</code> (which is 8) as the count, not as a flag.</p>
+
+<p>Either use a named argument:</p>
+
+<pre><code>re.sub('^//', '', s, flags=re.MULTILINE)
+</code></pre>
+
+<p>Or compile the regex first:</p>
+
+<pre><code>re.sub(re.compile('^//', re.MULTILINE), '', s)
+</code></pre>
+"
+"42950","43663","43663","How to get the last day of the month?","<p><a href=""https://docs.python.org/library/calendar.html#calendar.monthrange"" rel=""noreferrer""><code>calendar.monthrange</code></a> provides this information:</p>
+<blockquote>
+<p>calendar.<b>monthrange</b>(year, month)<br>
+    Returns weekday of first day of the month and number of days in month, for the specified <em>year</em> and <em>month</em>.</p>
+</blockquote>
+<pre><code>&gt;&gt;&gt; import calendar
+&gt;&gt;&gt; calendar.monthrange(2002, 1)
+(1, 31)
+&gt;&gt;&gt; calendar.monthrange(2008, 2)  # leap years are handled correctly
+(4, 29)
+&gt;&gt;&gt; calendar.monthrange(2100, 2)  # years divisible by 100 but not 400 aren't leap years
+(0, 28)
+</code></pre>
+<p>so:</p>
+<pre><code>calendar.monthrange(year, month)[1]
+</code></pre>
+<p>seems like the simplest way to go.</p>
+"
+"43099","43172","43172","How can I get a commit message from a bzr post-commit hook?","<p>And the answer is like so:</p>
+
+<pre><code>def check_commit_msg(local, master, old_revno, old_revid, new_revno, new_revid):
+    branch = local or master
+    revision = branch.repository.get_revision(new_revid)
+    print revision.message
+</code></pre>
+
+<p>local and master are Branch objects, so once you have a revision, it's easy to extract the message.</p>
+"
+"43290","43312","43312","How to generate urls in django","<p>If you need to use something similar to the <code>{% url %}</code> template tag in your code, Django provides the <code>django.core.urlresolvers.reverse()</code>. The <code>reverse</code> function has the following signature:</p>
+
+<pre><code>reverse(viewname, urlconf=None, args=None, kwargs=None)
+</code></pre>
+
+<p><a href=""https://docs.djangoproject.com/en/dev/ref/urlresolvers/"" rel=""noreferrer"">https://docs.djangoproject.com/en/dev/ref/urlresolvers/</a></p>
+
+<p>At the time of this edit the import is <code>django.urls import reverse</code></p>
+"
+"43580","2753385","2753385","How to find the mime type of a file in python?","<p>The python-magic method suggested by <a href=""https://stackoverflow.com/a/2133843/5337834"">toivotuo</a> is outdated. <a href=""http://github.com/ahupp/python-magic"" rel=""noreferrer"">Python-magic's</a> current trunk is at Github and based on the readme there, finding the MIME-type, is done like this.</p>
+<pre><code># For MIME types
+import magic
+mime = magic.Magic(mime=True)
+mime.from_file(&quot;testdata/test.pdf&quot;) # 'application/pdf'
+</code></pre>
+"
+"43775","43794","43794","Modulus operation with negatives values - weird thing?","<p>By the way: most programming languages would disagree with Python and give the result <code>-2</code>. Depending on the interpretation of modulus this is correct. However, the most agreed-upon mathematical definition states that the modulus of <em>a</em> and <em>b</em> is the (strictly positive) rest <em>r</em> of the division of <em>a</em> / <em>b</em>. More precisely, 0 &lt;= <em>r</em> &lt; <em>b</em> by definition.</p>
+"
+"44084","44095","44095","How do I document a module in Python?","<p>For the packages, you can document it in <code>__init__.py</code>.
+For the modules, you can add a docstring simply in the module file.</p>
+
+<p>All the information is here: <a href=""http://www.python.org/dev/peps/pep-0257/"" rel=""noreferrer"">http://www.python.org/dev/peps/pep-0257/</a></p>
+"
+"44352","44381","44381","Iterate over subclasses of a given class in a given module","<p>Here's one way to do it:</p>
+
+<pre><code>import inspect
+
+def get_subclasses(mod, cls):
+    """"""Yield the classes in module ``mod`` that inherit from ``cls``""""""
+    for name, obj in inspect.getmembers(mod):
+        if hasattr(obj, ""__bases__"") and cls in obj.__bases__:
+            yield obj
+</code></pre>
+"
+"44778","44781","44781","How would you make a comma-separated string from a list of strings?","<pre><code>my_list = ['a', 'b', 'c', 'd']
+my_string = ','.join(my_list)
+</code></pre>
+
+<pre><code>'a,b,c,d'
+</code></pre>
+
+<p>This won't work if the list contains integers</p>
+
+<hr>
+
+<p>And if the list contains non-string types (such as integers, floats, bools, None) then do:</p>
+
+<pre><code>my_string = ','.join(map(str, my_list)) 
+</code></pre>
+"
+"44834","44842","44842","What does __all__ mean in Python?","<p>It's a list of public objects of that module, as interpreted by <code>import *</code>. It overrides the default of hiding everything that begins with an underscore.</p>
+"
+"45122","45126","45126","Python packages - import by class, not file","<p>You need to put</p>
+
+<pre><code>from project import Project
+</code></pre>
+
+<p>in <code>controllers/__init__.py</code>.</p>
+
+<p>Note that when <a href=""http://www.python.org/dev/peps/pep-0328/"" rel=""noreferrer"">Absolute imports</a> become the default (Python 2.7?), you will want to add a dot before the module name (to avoid collisions with a top-level model named <code>project</code>), i.e.,</p>
+
+<pre><code>from .project import Project
+</code></pre>
+"
+"47207","47304","47304","Django: Print url of view without hardcoding the url","<p>You can use <code>get_absolute_url</code>, but that will only work for a particular object.  Since your object hasn't been created yet, it won't work in this case.</p>
+
+<p>You want to use <a href=""https://docs.djangoproject.com/en/1.2/topics/http/urls/#naming-url-patterns"" rel=""nofollow noreferrer"">named URL patterns</a>.  Here's a quick intro:</p>
+
+<p>Change the line in your urls.py to:</p>
+
+<pre><code>(r'^manage/products/add/$', create_object, {'model': Product, 'post_save_redirect': ''}, ""create-product""),
+</code></pre>
+
+<p>Then, in your template you use this to display the URL:</p>
+
+<pre><code>{% url create-product %}
+</code></pre>
+
+<p>If you're using Django 1.5 or higher you need this:</p>
+
+<pre><code>{% url 'create-product' %}
+</code></pre>
+
+<p>You can do some more powerful things with named URL patterns, they're very handy.  Note that they are only in the development version (and also 1.0).</p>
+"
+"47701","56510","56510","Is there a way to attach a debugger to a multi-threaded Python process?","<p>Yeah, gdb is good for lower level debugging.</p>
+
+<p>You can change threads with the <em>thread</em> command.</p>
+
+<p>e.g</p>
+
+<pre><code>(gdb) thr 2
+[Switching to thread 2 (process 6159 thread 0x3f1b)]
+(gdb) backtrace
+....
+</code></pre>
+
+<p>You could also check out Python specific debuggers like <a href=""http://winpdb.org/about/"" rel=""noreferrer"">Winpdb</a>, or <a href=""http://bashdb.sourceforge.net/pydb/"" rel=""noreferrer"">pydb</a>. Both platform independent. </p>
+"
+"47789","47826","47826","Generator expressions vs. list comprehensions","<p><a href=""https://stackoverflow.com/a/47792/4518341"">John's answer</a> is good (that list comprehensions are better when you want to iterate over something multiple times).  However, it's also worth noting that you should use a list if you want to use any of the list methods.  For example, the following code won't work:</p>
+
+<pre><code>def gen():
+    return (something for something in get_some_stuff())
+
+print gen()[:2]     # generators don't support indexing or slicing
+print [5,6] + gen() # generators can't be added to lists
+</code></pre>
+
+<p>Basically, use a generator expression if all you're doing is iterating once.  If you want to store and use the generated results, then you're probably better off with a list comprehension.</p>
+
+<p>Since performance is the most common reason to choose one over the other, my advice is to not worry about it and just pick one; if you find that your program is running too slowly, then and only then should you go back and worry about tuning your code.</p>
+"
+"48458","70271","70271","Project structure for Google App Engine","<p>First, I would suggest you have a look at ""<a href=""http://sites.google.com/site/io/rapid-development-with-python-django-and-google-app-engine"" rel=""noreferrer"">Rapid Development with Python, Django, and Google App Engine</a>""</p>
+
+<p>GvR describes a general/standard project layout on page 10 of his <a href=""http://sites.google.com/site/io/rapid-development-with-python-django-and-google-app-engine/rapid_development_with_django_gae.pdf?attredirects=0"" rel=""noreferrer"">slide presentation</a>.  </p>
+
+<p>Here I'll post a slightly modified version of the layout/structure from that page. I pretty much follow this pattern myself. You also mentioned you had trouble with packages. Just make sure each of your sub folders has an __init__.py file. It's ok if its empty.</p>
+
+<h2>Boilerplate files</h2>
+
+<ul>
+<li>These hardly vary between projects</li>
+<li>app.yaml: direct all non-static requests to main.py </li>
+<li>main.py: initialize app and send it all requests </li>
+</ul>
+
+<h2>Project lay-out</h2>
+
+<ul>
+<li>static/*: static files; served directly by App Engine</li>
+<li>myapp/*.py: app-specific python code
+
+<ul>
+<li>views.py, models.py, tests.py, __init__.py, and more</li>
+</ul></li>
+<li>templates/*.html: templates (or myapp/templates/*.html)</li>
+</ul>
+
+<p>Here are some code examples that may help as well:</p>
+
+<h2>main.py</h2>
+
+<pre><code>import wsgiref.handlers
+
+from google.appengine.ext import webapp
+from myapp.views import *
+
+application = webapp.WSGIApplication([
+  ('/', IndexHandler),
+  ('/foo', FooHandler)
+], debug=True)
+
+def main():
+  wsgiref.handlers.CGIHandler().run(application)
+</code></pre>
+
+<h2>myapp/views.py</h2>
+
+<pre><code>import os
+import datetime
+import logging
+import time
+
+from google.appengine.api import urlfetch
+from google.appengine.ext.webapp import template
+from google.appengine.api import users
+from google.appengine.ext import webapp
+from models import *
+
+class IndexHandler(webapp.RequestHandler):
+  def get(self):
+    date = ""foo""
+    # Do some processing        
+    template_values = {'data': data }
+    path = os.path.join(os.path.dirname(__file__) + '/../templates/', 'main.html')
+    self.response.out.write(template.render(path, template_values))
+
+class FooHandler(webapp.RequestHandler):
+  def get(self):
+    #logging.debug(""start of handler"")
+</code></pre>
+
+<h2>myapp/models.py</h2>
+
+<pre><code>from google.appengine.ext import db
+
+class SampleModel(db.Model):
+</code></pre>
+
+<p>I think this layout works great for new and relatively small to medium projects. For larger projects I would suggest breaking up the views and models to have their own sub-folders with something like:</p>
+
+<h2>Project lay-out</h2>
+
+<ul>
+<li>static/: static files; served directly by App Engine
+
+<ul>
+<li>js/*.js</li>
+<li>images/*.gif|png|jpg</li>
+<li>css/*.css</li>
+</ul></li>
+<li>myapp/: app structure
+
+<ul>
+<li>models/*.py</li>
+<li>views/*.py</li>
+<li>tests/*.py</li>
+<li>templates/*.html: templates</li>
+</ul></li>
+</ul>
+"
+"48562","50507","50507","How do I implement a pre-commit hook script in SVN that calls dos2unix to validate checked-in file","<p>I think you can avoid a commit hook script in this case by using the <code>svn:eol-style</code> property as described in the SVNBook:</p>
+
+<ul>
+<li><p><a href=""http://svnbook.red-bean.com/en/1.7/svn.advanced.props.file-portability.html#svn.advanced.props.special.eol-style"" rel=""nofollow noreferrer"">End-of-Line Character Sequences</a></p></li>
+<li><p><a href=""http://svnbook.red-bean.com/en/1.7/svn.ref.properties.html"" rel=""nofollow noreferrer"">Subversion Properties</a></p></li>
+</ul>
+
+<p>This way SVN can worry about your line endings for you.</p>
+
+<p>Good luck!</p>
+"
+"48777","48806","48806","Python: No module named core.exceptions","<p><code>core.exceptions</code> is part of django; what version of django do you have installed? The AppEngine comes with the appropriate version for whatever release you've downloaded (in the lib/django directory). It can be installed by going to that directory and running <strong><code>python setup.py install</code></strong></p>
+"
+"49164","49169","49169","How do I turn a python program into an .egg file?","<p><a href=""http://peak.telecommunity.com/DevCenter/setuptools"" rel=""noreferrer"">Setuptools</a> is the software that creates <a href=""http://peak.telecommunity.com/DevCenter/PythonEggs"" rel=""noreferrer"">.egg files</a>. It's an extension of the <a href=""http://docs.python.org/lib/module-distutils.html"" rel=""noreferrer""><code>distutils</code></a> package in the standard library.</p>
+
+<p>The process involves creating a <code>setup.py</code> file, then  <code>python setup.py bdist_egg</code> creates an .egg package.</p>
+"
+"49824","49953","49953","Java -> Python?","<ol>
+<li><p>List comprehensions.  I often find myself filtering/mapping lists, and being able to say <code>[line.replace(""spam"",""eggs"") for line in open(""somefile.txt"") if line.startswith(""nee"")]</code> is really nice.</p></li>
+<li><p>Functions are first class objects.  They can be passed as parameters to other functions, defined inside other function, and have lexical scope.  This makes it really easy to say things like <code>people.sort(key=lambda p: p.age)</code> and thus sort a bunch of people on their age without having to define a custom comparator class or something equally verbose.</p></li>
+<li><p>Everything is an object.  Java has basic types which aren't objects, which is why many classes in the standard library define 9 different versions of functions (for boolean, byte, char, double, float, int, long, Object, short).  <code>Array.sort</code> is a good example.  Autoboxing helps, although it makes things awkward when something turns out to be null.</p></li>
+<li><p>Properties.  Python lets you create classes with read-only fields, lazily-generated fields, as well as fields which are checked upon assignment to make sure they're never 0 or null or whatever you want to guard against, etc.'</p></li>
+<li><p>Default and keyword arguments.  In Java if you want a constructor that can take up to 5 optional arguments, you must define 6 different versions of that constructor.  And there's no way at all to say <code>Student(name=""Eli"", age=25)</code></p></li>
+<li><p>Functions can only return 1 thing.  In Python you have tuple assignment, so you can say <code>spam, eggs = nee()</code> but in Java you'd need to either resort to mutable out parameters or have a custom class with 2 fields and then have two additional lines of code to extract those fields.</p></li>
+<li><p>Built-in syntax for lists and dictionaries.</p></li>
+<li><p>Operator Overloading.</p></li>
+<li><p>Generally better designed libraries.  For example, to parse an XML document in Java, you say<br>
+<code>Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(""test.xml"");</code><br>
+and in Python you say<br>
+<code>doc = parse(""test.xml"")</code></p></li>
+</ol>
+
+<p>Anyway, I could go on and on with further examples, but Python is just overall a much more flexible and expressive language.  It's also dynamically typed, which I really like, but which comes with some disadvantages.</p>
+
+<p>Java has much better performance than Python and has way better tool support.  Sometimes those things matter a lot and Java is the better language than Python for a task; I continue to use Java for some new projects despite liking Python a lot more.  But as a language I think Python is superior for most things I find myself needing to accomplish.</p>
+"
