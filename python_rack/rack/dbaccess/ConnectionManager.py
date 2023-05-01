@@ -1,24 +1,27 @@
-
-
-from asyncio.windows_events import NULL
 import sqlite3
-from sqlite3 import Connection
-from sqlite3 import DriverManager
-from sqlite3 import SQLException
+import traceback
 
-from rack.config import StaticData
+
 class ConnectionManager:
-    conn = NULL
-    def getConnection():
+
+    def __init__(self):
+        self.conn = None
+        self.db_file ="/Users/gaoshihui/rack_py_g/rack_py_g/rack-py-main/rack/dbaccess/rack-python.db"
+
+
+    def getConnection(self):
         try:
-            if Connection.conn == NULL:
-                conn = DriverManager.getConnection(StaticData.connectionString)
+            self.conn = sqlite3.connect(self.db_file)
+        except:
+            traceback.print_exc()
+            try:
+                self.conn.close()
+            except:
+                traceback.print_exc()
+        return self.conn
 
 
-        except (Exception.exc):
-                Exception.exc.printStackTrace()
-                try:
-                    Connection.conn.close()
-                except(SQLException.e):
-                    SQLException.e.printStackTrace()
-        return conn
+manager = ConnectionManager()
+conn = manager.getConnection()
+print(conn)
+
