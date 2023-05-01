@@ -1,80 +1,80 @@
-import sqlite3
-from sqlite3 import Connection
-from sqlite3 import DriverManager
-from sqlite3 import ResultSet
-from sqlite3 import Statement
-import array as arr
-import rack.similarity.CosineSimilarityMeasure
-import rack.config.StaticData
-import rack.dbaccess.ConnectionManager
+
+from similarity.CosineSimilarityMeasure import CosineSimilarityMeasure
+from dbaccess.ConnectionManager import ConnectionManager
+import traceback
+
 class AdjacencyScoreProvider:
-    #double[][] simscores
-    # ArrayList<String> queryTerms
-    # HashMap<String, ArrayList<String>> 
+
     queryTerms = []
     adjacencymap = dict()
-    keys=[]
-    
-    simscores =[[]]
+    keys = []
+    simscores = [[]]
 
+    def __init__(self, queryTerms):
+        self.queryTerms = queryTerms
+        self.adjacencymap = dict()
+        self.keys = []
 
-    def AdjacencyScoreProvider (rack, queryTerms):
-        rack.queryTerms=queryTerms
-        rack.adjacencymap=dict()
-        rack.keys=[]
-
-    def collectAdjacentTerms():
+    def collectAdjacentTerms(self):
         try:
-            conn = rack.dbaccess.ConnectionManager.getConnection()
-            if Connection.conn != NULL:
-                
-                for key in rack.queryTerms :
-                    getAdjacent = "select distinct Token from TextToken where EntryID in"
-                    + "(select EntryID from TextToken where Token='"
-                    + key + "') and Token!='" + key + "'"
-                Statement.stmt = conn.createStatement()
-                ResultSet.results = Statement.stmt.executeQuery(getAdjacent)
-                adjacent =[]
-                while ResultSet.results.next():
-                    token = ResultSet.results.getString("Token")
-                    adjacent.add(token)
-                rack.adjacencymap.add(key, adjacent)
+            conn =  ConnectionManager().getConnection()
+            if conn != None:
+                for key in self.queryTerms:
+                    getAdjacent = ""
+                    getAdjacent = 'select distinct Token from TextToken where EntryID in '+ "(select EntryID from TextToken where Token='"+ key + "') and Token!='" + key + "'"
 
+                    stmt = conn.cursor()
+                    results = stmt.execute(getAdjacent)
+                    adjacent = []
+                    for row in results:
+                        token = row[0]
+                        adjacent.append(token)
+                    self.adjacencymap[key] = adjacent
 
-        except(Exception.exc):
-            Exception.exc.printStackTrace()
-    def collectAdjacencyScores():
-        dimension = rack.adjacencymap.keySet().length()
-        rack.keys.addAll(rack.adjacencymap.keySet())
-        simscores=[dimension[dimension]]
-        
-        for i in range (dimension) :
-            first = rack.keys[i]
-            for j in range (dimension) :
-                second = rack.keys[j]
-                rack.similarity.CosineSimilarityMeasure.cos = rack.similarity.CosineSimilarityMeasure(rack.adjacencymap[first],rack.adjacencymap[second])
-                simscore = rack.similarity.CosineSimilarityMeasure.cos.getCosineSimilarityScore()
+        except:
+
+            traceback.print_exc()
+
+    def collectAdjacencyScores(self):
+        dimension = len(self.adjacencymap.keys())
+        for key in self.adjacencymap.keys():
+            self.keys.append(key)
+
+        simscores = []
+        for i in range(0, dimension):
+            simscoresr = []
+            for j in range(0, dimension):
+                simscoresr.append(0.0)
+            simscores.append(simscoresr)
+
+        for i in range(0, dimension):
+            first = self.keys[i]
+            for j in range(i+1, dimension):
+                second = self.keys[j]
+                cos = CosineSimilarityMeasure(None, None,
+                                              self.adjacencymap[first], self.adjacencymap[second])
+                simscore = cos.getCosineSimilarityScore()
                 simscores[i][j] = simscore
 
         return simscores
-    def getQueryTermAdjacencyScores():
-        rack.collectAdjacentTerms()
-        rack.collectAdjacencyScores()
-    def main():
-        queryTerms =["extract","method","class"]
-        AdjacencyScoreProvider.provider = AdjacencyScoreProvider(queryTerms)
-        AdjacencyScoreProvider.provider.getQueryTermAdjacencyScores()
+
+    def getQueryTermAdjacencyScores(self):
+
+        self.collectAdjacentTerms()
+        self.collectAdjacencyScores()
 
 
-    
+def main():
+    queryTerms = []
+
+    queryTerms.append("extract")
+    queryTerms.append("method")
+    queryTerms.append("class")
+    provider = AdjacencyScoreProvider(queryTerms)
+    provider.getQueryTermAdjacencyScores()
 
 
+if __name__ == "__main__":
+    main()
 
-
-
-
-
-
-
-        
 
