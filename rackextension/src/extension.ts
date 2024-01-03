@@ -38,7 +38,6 @@ export function activate(context: vscode.ExtensionContext) {
 		  } else if (searchQuery !== undefined) {
 			console.log(searchQuery);
 			console.log("working");
-			// /Users/gaoshihui/shihui_rack_2023/rack/rackextension/src/rack1.py
 
 			// // Replace with the actual path to "rack1.py"
 			const filePath = "rack1.py";
@@ -56,6 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
 			});
 			
 			
+			
 		  }
 		}
 	  
@@ -63,8 +63,50 @@ export function activate(context: vscode.ExtensionContext) {
 	  // Call the function to initiate the search
 	  searchSnippets();
 	  context.subscriptions.push(disposable);
-
+	  // This method is called when your extension is deactivated
+	//   export function deactivate() {}
+	  
 }
 
 
 export function deactivate() {}
+
+	  
+	//     if (searchQuery === '') {
+	//       console.log(searchQuery);
+	//       vscode.window.showErrorMessage('A search query is mandatory to execute this action');
+	//     } else {
+	//   	// const searchUrl = `https://www.codever.land/search?q=${searchQuery}&sd=my-snippets`;
+	//     	// vscode.env.openExternal(Uri.parse(searchUrl));
+	  
+	//       // Execute the action based on the searchQuery (not provided in the snippet)
+	//       console.log('Executing action with search query:', searchQuery);
+	//     }
+	//   }
+	  
+	  // async function searchSnippets(searchQuery: string): Promise<void> {
+
+
+
+			// // // Run "rack1.py" and pass the searchQuery as input
+			// const rack1Process = spawn('python3', [filePath, searchQuery]);
+		
+			// let output = '';
+		
+			// // Handle standard output
+			// rack1Process.stdout.on('data', (data) => {
+			//   output += data.toString();
+			// });
+		
+			// // Handle standard error
+			// rack1Process.stderr.on('data', (data) => {
+			//   console.error('rack1.py stderr:', data.toString());
+			// });
+		
+			// // Handle process exit
+			// rack1Process.on('close', (code) => {
+			//   console.log('rack1.py process exited with code', code);
+		
+			  // Display the output using vscode.env.openExternal
+			//   vscode.env.openExternal(vscode.Uri.parse('data:text/plain;charset=utf-8,' + encodeURIComponent(output)));
+			// });

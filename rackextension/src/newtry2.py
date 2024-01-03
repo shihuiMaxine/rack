@@ -1,6 +1,6 @@
+import ast
 import rack
 from rack import main
-import ast
 import sys
 import extractor
 import extractor.GitHubClient
@@ -8,41 +8,52 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import csv
-
+# print (sys.argv)
 totalcont=[]
 lista=[]
-
+# dicta=[]
 dicta={}
 listallcode=[]
-print (sys.argv[2:])
-stringquery=' '.join(sys.argv[2:])
-print(stringquery)
+# print (sys.argv[2:])
+# stringquery=' '.join(sys.argv[2:])
+# print(stringquery)
 
+# print("hello")
+# query = "send email"
+stringquery="Accessing a list of rows from mySQL table"
 question="https://api.github.com/search/code?q="
 listquery=stringquery.split(" ")
 for i in range (0, len(listquery)):
+    # if i != (len(stringquery)-1):
     question+=listquery[i] + "+"
-
+    # else:
+        # question+=i
 question += "in:file+language:python"
 
 call_url ="https://api.github.com/search/code?q=Accessing+a+list+of+rows+from+mySQL+table+in:file+language:python"
+# print(call_url)
+# print(question)
 result = extractor.GitHubClient.execute_github_call(call_url)
 htmlresult=result.split(",")
 listgit=[]
 numberurl=0
+
 for i in htmlresult:
     if "html_url" in i:
+        print(i)
         if ".py" in i:
+            # print("html_url:")
+            # print(i[12:len(i)-1])
             if numberurl < 5:
                 listgit.append(i[12:len(i)-1])
                 numberurl+=1
-
+# print(listgit)
 apitoken=main.main(stringquery)
-
-
+print(apitoken)
+# k=["execute", "len", "cursor", "append", "range"]
 k=apitoken
 def github_url_to_raw_url(github_url):
-
+    # Parse the GitHub URL
     parts = github_url.split("/")
     
     # Extract the repository owner, repository name, and branch or commit hash
@@ -66,11 +77,16 @@ def github_url_to_raw_url(github_url):
             return github_url,raw_url
         else:
             return "",""
+# for i in listgit:
+#     github_url,raw_url = github_url_to_raw_url(i)
+#     print(github_url)
+#     print(raw_url)
 
 giturllist=[]
 totalraw=[]
 n=0
 for i in listgit:
+    # if n==0:
     github_url = i
 
     # Convert to raw URL
@@ -79,7 +95,9 @@ for i in listgit:
         totalraw.append(raw_url)
         giturllist.append(giturl)
 
-
+        # Print the raw URL
+        print(giturl)
+        print(raw_url)
 def remove_comments(input_code):
     # Use a regular expression to match and remove comments
     cleaned_code = re.sub(r'^\s*#.*|(""")[\s\S]*?\1|(\'\'\')[\s\S]*?\2', '', input_code)
@@ -164,6 +182,7 @@ for i in listallcode:
     list1=[]
     list2=[]
     listsame=[]
+    # print(i)
     countapi=0
 
     method_names = re.findall(pattern, i)
@@ -171,7 +190,10 @@ for i in listallcode:
         if name[0:-1] not in list1:
             if name[0:-1] != "print":
                 list1.append(name[0:-1])
-
+                # string1+=name[0:-1]
+                # string1+=" "
+                # print(name[0:-1])
+                # k=["execute", "len", "cursor", "append", "range"]
                 k=apitoken
                 if name[0:-1] in k:
                     if name[0:-1] not in listsame:
@@ -180,20 +202,28 @@ for i in listallcode:
     codedictm[i]=list1
     codedictsame[i]=listsame
     codedict[i]=len(listsame)
-
+# print(codedict)
+# for i in listallcode:
+#     pattern = r"\w+\("
 dictorder={}
 for j in list(codedictsame.keys()):
     if len(codedictsame[j])>0:
+        # print(j)
+        # print(codedictm[j])
+        # print(codedictsame[j])
         difapi=len(codedictm[j])+5-(len(codedictsame[j]))
         saapi=len(codedictsame[j])
         perc=saapi/difapi
         dictorder[j]=perc
+        # print("#" * 60)
 
 
 
 my_dict = {'apple': 5, 'banana': 2, 'orange': 8, 'grape': 3}
 
 sorted_dict_descending = dict(sorted(dictorder.items(), key=lambda item: item[1], reverse=True))
+
+# print(sorted_dict_descending)
 
 cn=0
 for i in list(sorted_dict_descending.keys()):
@@ -202,8 +232,10 @@ for i in list(sorted_dict_descending.keys()):
         print(i)
         print(codedictm[i])
         print(codedictsame[i])
-        print(sorted_dict_descending[i])
         print("#" * 60)
+        # print(sorted_dict_descending[i])
         
 
     cn+=1
+
+
